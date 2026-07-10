@@ -225,6 +225,66 @@
     margin-top:6px;
   }
 
+  .field-wrap{ position:relative; }
+
+  .username-status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    margin-top:6px;
+    min-height:14px;
+  }
+  .username-status.checking{ color:var(--soft); }
+  .username-status.available{ color:#1a7f37; }
+  .username-status.taken,
+  .username-status.invalid{ color:#b3261e; }
+
+  .strength-meter{
+    display:flex;
+    gap:4px;
+    margin-top:8px;
+  }
+  .strength-bar{
+    height:4px;
+    flex:1;
+    border-radius:2px;
+    background:var(--line);
+    transition:background 0.15s ease;
+  }
+  .strength-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    margin-top:6px;
+    color:var(--soft);
+  }
+
+  .caps-warning{
+    display:none;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:#b36b00;
+    margin-top:6px;
+  }
+  .caps-warning.show{ display:flex; }
+
+  .recover-hint{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    color:var(--mid);
+    margin-top:14px;
+    text-align:center;
+  }
+  .recover-hint button{
+    background:none;
+    border:none;
+    color:var(--ink);
+    text-decoration:underline;
+    cursor:pointer;
+    font:inherit;
+    padding:0;
+  }
+
   .auth-error{
     display:none;
     font-family:'IBM Plex Mono', monospace;
@@ -417,14 +477,23 @@
       <div class="auth-error" id="authError"></div>
 
       <form class="auth-form" id="authForm" autocomplete="on">
-        <div>
+        <div class="field-wrap">
           <label class="field-label" for="username">Username</label>
           <input class="field-input" type="text" id="username" name="username" placeholder="yourname" autocomplete="username" maxlength="20" />
+          <p class="username-status" id="usernameStatus">&nbsp;</p>
         </div>
-        <div>
+        <div class="field-wrap">
           <label class="field-label" for="password">Password</label>
           <input class="field-input" type="password" id="password" name="password" placeholder="••••••••••••" autocomplete="current-password" />
           <p class="field-hint">Enter to log in · Shift + Enter to create account</p>
+          <div class="strength-meter" id="strengthMeter" style="display:none;">
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+            <div class="strength-bar"></div>
+          </div>
+          <p class="strength-label" id="strengthLabel"></p>
+          <p class="caps-warning" id="capsWarning">⚠ Caps Lock is on.</p>
         </div>
       </form>
 
@@ -434,6 +503,8 @@
       </div>
 
       <p class="mode-hint" id="statusHint">&nbsp;</p>
+
+      <p class="recover-hint">Forgot your password? <button type="button" id="recoverHintBtn">Recover using your Flowery Key</button></p>
 
       <p class="disclaimer">We never post on your behalf unless prompted.</p>
     </div>
@@ -492,6 +563,10 @@
         showError('Password must be at least 12 characters.');
         return null;
       }
+      if (forSignup && username.toLowerCase() === password.toLowerCase()) {
+        showError("Your password can't be the same as your username.");
+        return null;
+      }
     }
     showError('');
     return { username, password };
@@ -533,6 +608,106 @@
       setBusy(false, '');
     }
   }
+
+  // --- Password strength meter ---
+  // Purely a UI nudge -- the 12-char minimum above is still the only
+  // hard rule enforced server-side.
+  const strengthMeter = document.getElementById('strengthMeter');
+  const strengthLabel = document.getElementById('strengthLabel');
+  const strengthBars = strengthMeter.querySelectorAll('.strength-bar');
+  const STRENGTH_COLORS = ['#b3261e', '#b36b00', '#c9a400', '#1a7f37'];
+  const STRENGTH_LABELS = ['Weak', 'Fair', 'Good', 'Strong'];
+
+  function scorePassword(pw){
+    if (!pw) return 0;
+    let variety = 0;
+    if (/[a-z]/.test(pw)) variety++;
+    if (/[A-Z]/.test(pw)) variety++;
+    if (/[0-9]/.test(pw)) variety++;
+    if (/[^A-Za-z0-9]/.test(pw)) variety++;
+    let lengthScore = pw.length >= 20 ? 3 : pw.length >= 16 ? 2 : pw.length >= 12 ? 1 : 0;
+    let score = Math.min(3, Math.floor((variety - 1 + lengthScore) / 1.5));
+    return Math.max(0, Math.min(3, score));
+  }
+
+  passwordInput.addEventListener('input', () => {
+    const pw = passwordInput.value;
+    if (!pw) {
+      strengthMeter.style.display = 'none';
+      strengthLabel.textContent = '';
+      return;
+    }
+    strengthMeter.style.display = 'flex';
+    const level = scorePassword(pw); // 0-3
+    strengthBars.forEach((bar, i) => {
+      bar.style.background = i <= level ? STRENGTH_COLORS[level] : 'var(--line)';
+    });
+    strengthLabel.textContent = STRENGTH_LABELS[level];
+    strengthLabel.style.color = STRENGTH_COLORS[level];
+  });
+
+  // --- Caps Lock warning ---
+  function checkCapsLock(e){
+    const capsOn = typeof e.getModifierState === 'function' && e.getModifierState('CapsLock');
+    document.getElementById('capsWarning').classList.toggle('show', !!capsOn);
+  }
+  passwordInput.addEventListener('keydown', checkCapsLock);
+  passwordInput.addEventListener('keyup', checkCapsLock);
+  passwordInput.addEventListener('blur', () => {
+    document.getElementById('capsWarning').classList.remove('show');
+  });
+
+  // --- Live username availability ---
+  const usernameStatus = document.getElementById('usernameStatus');
+  let usernameCheckTimer = null;
+  let usernameCheckToken = 0;
+
+  usernameInput.addEventListener('input', () => {
+    const value = usernameInput.value.trim();
+    clearTimeout(usernameCheckTimer);
+
+    if (!value) {
+      usernameStatus.textContent = '\u00A0';
+      usernameStatus.className = 'username-status';
+      return;
+    }
+    if (!USERNAME_RE.test(value)) {
+      usernameStatus.textContent = '3-20 characters: letters, numbers, underscores.';
+      usernameStatus.className = 'username-status invalid';
+      return;
+    }
+    usernameStatus.textContent = 'Checking\u2026';
+    usernameStatus.className = 'username-status checking';
+
+    const myToken = ++usernameCheckToken;
+    usernameCheckTimer = setTimeout(() => {
+      PlatformAuth.checkUsernameAvailable(value)
+        .then((data) => {
+          if (myToken !== usernameCheckToken) return; // stale response
+          if (data.available) {
+            usernameStatus.textContent = '\u2713 Available';
+            usernameStatus.className = 'username-status available';
+          } else {
+            usernameStatus.textContent = '\u2715 Already taken';
+            usernameStatus.className = 'username-status taken';
+          }
+        })
+        .catch(() => {
+          if (myToken !== usernameCheckToken) return;
+          usernameStatus.textContent = '\u00A0';
+          usernameStatus.className = 'username-status';
+        });
+    }, 400);
+  });
+
+  // --- "Forgot your password?" -- advertise the Flowery Key recovery path ---
+  document.getElementById('recoverHintBtn').addEventListener('click', () => {
+    toast(
+      'Type your Flowery Key into both the Username and Password fields, then click Log In.',
+      'Recover with your Flowery Key'
+    );
+    usernameInput.focus();
+  });
 
   loginBtn.addEventListener('click', login);
   createBtn.addEventListener('click', createAccount);

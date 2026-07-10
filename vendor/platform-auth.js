@@ -118,6 +118,11 @@
     return val;
   }
 
+  /** Public, unauthenticated. Resolves { available, reason? }. */
+  function checkUsernameAvailable(username) {
+    return callFn('check-username', { username: username }, { timeoutMs: 8000 });
+  }
+
   // ---------- shared header (Join button OR avatar+menu+Sign Out) ----------
 
   var USER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M4.5 20c1.2-4.2 4-6.3 7.5-6.3s6.3 2.1 7.5 6.3"></path></svg>';
@@ -212,8 +217,12 @@
       revealBlock +
       '<div class="fk-confirm-label">' + (revealSdifk ? 'Paste it here to confirm you saved it:' : 'Paste your Flowery Key here:') + '</div>' +
       '<input class="fk-input" id="fkConfirmInput" type="text" autocomplete="off" spellcheck="false" placeholder="SDIFK-...">' +
+      '<label class="fk-checkbox-row" for="fkAckCheckbox">' +
+      '<input type="checkbox" id="fkAckCheckbox">' +
+      '<span>I understand that losing this key means I may permanently lose access to my account.</span>' +
+      '</label>' +
       '<div class="fk-error" id="fkError"></div>' +
-      '<button class="fk-btn fk-btn-solid fk-btn-full" id="fkContinueBtn" type="button">I Have Saved My Flowery Key -- Continue</button>' +
+      '<button class="fk-btn fk-btn-solid fk-btn-full" id="fkContinueBtn" type="button" disabled>I Have Saved My Flowery Key -- Continue</button>' +
       '<button class="fk-btn fk-btn-text" id="fkSignOutBtn" type="button">Sign out instead</button>' +
       '</div></div>'
     );
@@ -234,6 +243,8 @@
       '.fk-warning-box{background:#fdecea;border:1px solid #f3c6c2;color:#8a2318;border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.5;margin-bottom:6px;}' +
       '.fk-btn-row{display:flex;gap:8px;margin-top:8px;}' +
       '.fk-input{width:100%;font-family:"IBM Plex Mono",monospace;font-size:13px;padding:12px 14px;border:1px solid #e4e4e0;border-radius:10px;margin-bottom:8px;box-sizing:border-box;}' +
+      '.fk-checkbox-row{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#555;line-height:1.4;margin-bottom:12px;cursor:pointer;}' +
+      '.fk-checkbox-row input{margin-top:2px;flex-shrink:0;}' +
       '.fk-error{color:#b3261e;font-size:12.5px;margin-bottom:10px;min-height:16px;}' +
       '.fk-btn{font-family:Inter,sans-serif;font-weight:500;font-size:14px;padding:11px 16px;border-radius:999px;cursor:pointer;border:1px solid transparent;flex:1;}' +
       '.fk-btn-ghost{background:#fff;color:#0a0a0a;border:1px solid #e4e4e0;}' +
@@ -266,11 +277,18 @@
       document.body.style.overflow = 'hidden';
 
       var confirmInput = document.getElementById('fkConfirmInput');
+      var ackCheckbox = document.getElementById('fkAckCheckbox');
       var errorEl = document.getElementById('fkError');
       var continueBtn = document.getElementById('fkContinueBtn');
       var copyBtn = document.getElementById('fkCopyBtn');
       var downloadBtn = document.getElementById('fkDownloadBtn');
       var signOutBtn = document.getElementById('fkSignOutBtn');
+
+      function refreshContinueEnabled() {
+        continueBtn.disabled = !(confirmInput.value.trim() && ackCheckbox.checked);
+      }
+      confirmInput.addEventListener('input', refreshContinueEnabled);
+      ackCheckbox.addEventListener('change', refreshContinueEnabled);
 
       if (copyBtn) {
         copyBtn.addEventListener('click', function () {
@@ -308,6 +326,10 @@
           errorEl.textContent = 'Paste your Flowery Key to continue.';
           return;
         }
+        if (!ackCheckbox.checked) {
+          errorEl.textContent = 'Check the box to confirm you understand.';
+          return;
+        }
         errorEl.textContent = '';
         continueBtn.disabled = true;
         continueBtn.textContent = 'Checking...';
@@ -321,7 +343,7 @@
           })
           .catch(function (err) {
             errorEl.textContent = err.message || 'That key is not correct.';
-            continueBtn.disabled = false;
+            refreshContinueEnabled();
             continueBtn.textContent = 'I Have Saved My Flowery Key -- Continue';
           });
       });
@@ -340,6 +362,7 @@
     signup: signup,
     login: login,
     logout: logout,
+    checkUsernameAvailable: checkUsernameAvailable,
     renderHeader: renderHeader,
     enforceFirstTimeGate: enforceFirstTimeGate,
   };
