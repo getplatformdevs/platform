@@ -1,2 +1,1 @@
 # platform
-The Platform
