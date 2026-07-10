@@ -1,21 +1,11 @@
-/* vendor/platform-auth.js
- *
- * Replaces the old Supabase-Auth-based system entirely. No more
- * supabaseClient.auth.* anywhere -- this talks straight to the three
- * edge functions (auth-signup, auth-login, account-sdifk) and keeps a
- * simple signed session token in localStorage.
- *
- * Include this AFTER the toast() watchdog script and BEFORE any
- * page-specific script that needs PlatformAuth.
- */
+/* vendor/platform-auth.js */
 (function (global) {
   'use strict';
 
-  // ---- point this at your own project ----
   var FUNCTIONS_BASE = 'https://evrulqmiiswsidgsysiq.supabase.co/functions/v1';
 
   var SESSION_KEY = 'platform_session';
-  var PENDING_SDIFK_KEY = 'platform_pending_sdifk'; // sessionStorage, one-time
+  var PENDING_SDIFK_KEY = 'platform_pending_sdifk';
 
   function getSession() {
     try {
@@ -46,7 +36,6 @@
     });
   }
 
-  /** Calls one of the three edge functions. Throws Error(message) on failure. */
   function callFn(name, body, opts) {
     opts = opts || {};
     var session = getSession();
@@ -72,7 +61,34 @@
     );
   }
 
-  // ---------- signup / login / logout ----------
+  function processImage(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file) return reject(new Error("No file selected."));
+      if (file.size > 1024 * 1024) return reject(new Error("File must be 1MB or less."));
+
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        var img = new Image();
+        img.onload = function () {
+          var canvas = document.createElement("canvas");
+          var MAX_SIZE = 256;
+          var minDim = Math.min(img.width, img.height);
+          var sx = (img.width - minDim) / 2;
+          var sy = (img.height - minDim) / 2;
+
+          canvas.width = MAX_SIZE;
+          canvas.height = MAX_SIZE;
+          var ctx = canvas.getContext("2d");
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, MAX_SIZE, MAX_SIZE);
+          resolve(canvas.toDataURL("image/jpeg", 0.85));
+        };
+        img.onerror = function () { reject(new Error("Failed to process image.")); };
+        img.src = e.target.result;
+      };
+      reader.onerror = function () { reject(new Error("Failed to read file.")); };
+      reader.readAsDataURL(file);
+    });
+  }
 
   function signup(username, password) {
     return callFn('auth-signup', { username: username, password: password }).then(
@@ -83,9 +99,8 @@
           username: data.user.username,
           first_time: data.user.first_time,
           created_at: data.user.created_at,
+          pfp: data.user.pfp
         });
-        // Stash the ONE-TIME raw SDIFK for the gate to display. Read once,
-        // deleted immediately by whoever reads it.
         sessionStorage.setItem(PENDING_SDIFK_KEY, data.sdifk);
         return data;
       }
@@ -101,6 +116,7 @@
           username: data.user.username,
           first_time: data.user.first_time,
           created_at: data.user.created_at,
+          pfp: data.user.pfp
         });
         return data;
       }
@@ -118,15 +134,12 @@
     return val;
   }
 
-  /** Public, unauthenticated. Resolves { available, reason? }. */
   function checkUsernameAvailable(username) {
     return callFn('check-username', { username: username }, { timeoutMs: 8000 });
   }
 
-  // ---------- shared header (Join button OR avatar+menu+Sign Out) ----------
-
   var USER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M4.5 20c1.2-4.2 4-6.3 7.5-6.3s6.3 2.1 7.5 6.3"></path></svg>';
-  var GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+  var GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
 
   var DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
@@ -143,10 +156,13 @@
         '<a href="https://getplatform.pages.dev/join" class="btn btn-solid" style="color:#ffffff; text-decoration:none;">Join</a>';
       return;
     }
+    
+    var avatarSrc = session.pfp ? session.pfp : DEFAULT_AVATAR;
+
     authAreaEl.innerHTML =
       '<div class="user-menu" id="userMenu">' +
       '<button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false" title="@' + session.username + '">' +
-      '<img src="' + DEFAULT_AVATAR + '" alt=""></button>' +
+      '<img src="' + avatarSrc + '" alt=""></button>' +
       '<div class="user-dropdown" id="userDropdown">' +
       '<a class="dropdown-item" href="https://getplatform.pages.dev/profile">' + USER_SVG + 'Profile</a>' +
       '<a class="dropdown-item" href="https://getplatform.pages.dev/settings">' + GEAR_SVG + 'Settings</a>' +
@@ -175,24 +191,6 @@
       }
     });
   }
-
-  // ---------- the mandatory Flowery Key gate ----------
-  //
-  // Runs on every page once a session exists. If first_time is true, it
-  // throws up a full-screen, non-dismissable overlay. There are two
-  // variants:
-  //
-  //   A) Fresh signup: we still have the raw SDIFK sitting in
-  //      sessionStorage (set once, by signup()). Show it, let them
-  //      copy/download it, then require them to paste it back in to
-  //      prove they actually grabbed it.
-  //
-  //   B) Returning first_time=true user who never confirmed: we do NOT
-  //      have the raw key anymore -- nobody does, it was never stored.
-  //      All we can do is ask them to paste the key they (hopefully)
-  //      saved, verify it against the hash, and unlock the account. If
-  //      they don't have it, there is genuinely no way back in except
-  //      starting over with a new account.
 
   function buildGateHtml(revealSdifk) {
     var revealBlock = revealSdifk
@@ -255,17 +253,95 @@
     document.head.appendChild(style);
   }
 
-  /**
-   * Call this on every page, right after you know whether there's a
-   * session. Returns a Promise that resolves once the gate is cleared
-   * (or immediately, if there was nothing to gate).
-   */
+  function showPfpOnboarding() {
+    return new Promise(function (resolve) {
+      var root = document.createElement('div');
+      root.id = 'pfpGateRoot';
+      
+      var style = document.createElement('style');
+      style.textContent = '#pfpModalUploadBtn:hover #pfpModalOverlay { opacity: 1 !important; }';
+      document.head.appendChild(style);
+
+      root.innerHTML =
+        '<div class="fk-backdrop" id="pfpBackdrop">' +
+        '<div class="fk-card" style="text-align:center;">' +
+        '<h2 class="fk-title">Set a Profile Picture</h2>' +
+        '<p class="fk-desc">Personalize your account. (Max 1MB)</p>' +
+        '<div style="margin:20px auto; width:120px; height:120px; border-radius:50%; overflow:hidden; border:1px solid #e4e4e0; background:#f6f6f4; position:relative; cursor:pointer;" id="pfpModalUploadBtn">' +
+           '<img id="pfpModalImg" src="' + DEFAULT_AVATAR + '" style="width:100%; height:100%; object-fit:cover;">' +
+           '<div class="fk-pfp-overlay" id="pfpModalOverlay" style="position:absolute; inset:0; background:rgba(10,10,10,0.55); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s;"><svg style="width:28px;height:28px;color:#fff;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg></div>' +
+        '</div>' +
+        '<input type="file" id="pfpModalInput" accept="image/*" style="display:none;">' +
+        '<div class="fk-error" id="pfpModalError"></div>' +
+        '<div style="display:flex; flex-direction:column; gap:10px;">' +
+        '<button class="fk-btn fk-btn-solid" id="pfpSaveBtn" type="button" disabled>Save Picture</button>' +
+        '<button class="fk-btn fk-btn-text" id="pfpSkipBtn" type="button" style="margin-top:0;">Skip for now</button>' +
+        '</div>' +
+        '</div></div>';
+      
+      document.body.appendChild(root);
+
+      var uploadBtn = document.getElementById('pfpModalUploadBtn');
+      var fileInput = document.getElementById('pfpModalInput');
+      var previewImg = document.getElementById('pfpModalImg');
+      var errorEl = document.getElementById('pfpModalError');
+      var saveBtn = document.getElementById('pfpSaveBtn');
+      var skipBtn = document.getElementById('pfpSkipBtn');
+
+      var currentBase64 = null;
+
+      uploadBtn.addEventListener('click', function() { fileInput.click(); });
+
+      fileInput.addEventListener('change', function(e) {
+        var file = e.target.files[0];
+        if (!file) return;
+        errorEl.textContent = '';
+        processImage(file).then(function(base64) {
+          currentBase64 = base64;
+          previewImg.src = base64;
+          saveBtn.disabled = false;
+        }).catch(function(err) {
+          errorEl.textContent = err.message;
+          saveBtn.disabled = true;
+        });
+      });
+
+      function cleanup() {
+        document.body.style.overflow = '';
+        root.remove();
+        resolve();
+      }
+
+      skipBtn.addEventListener('click', cleanup);
+
+      saveBtn.addEventListener('click', function() {
+        if (!currentBase64) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        callFn('update-pfp', { pfp: currentBase64 })
+          .then(function(res) {
+            var session = getSession();
+            session.pfp = res.pfp;
+            setSession(session);
+            var headerAvatar = document.querySelector('#avatarBtn img');
+            if (headerAvatar) headerAvatar.src = res.pfp;
+            cleanup();
+          })
+          .catch(function(err) {
+            errorEl.textContent = err.message || 'Failed to save.';
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Picture';
+          });
+      });
+    });
+  }
+
   function enforceFirstTimeGate() {
     var session = getSession();
     if (!session || !session.first_time) return Promise.resolve();
 
     injectGateStyles();
-    var pendingSdifk = takePendingSdifk(); // null unless we just signed up
+    var pendingSdifk = takePendingSdifk();
 
     return new Promise(function (resolve) {
       var root = document.createElement('div');
@@ -273,7 +349,6 @@
       root.innerHTML = buildGateHtml(pendingSdifk);
       document.body.appendChild(root);
 
-      // Block scrolling/interaction with the rest of the page underneath.
       document.body.style.overflow = 'hidden';
 
       var confirmInput = document.getElementById('fkConfirmInput');
@@ -337,8 +412,13 @@
           .then(function () {
             session.first_time = false;
             setSession(session);
-            document.body.style.overflow = '';
             root.remove();
+            
+            // Post Flowery-Key: Prompt for PFP Setup
+            return showPfpOnboarding();
+          })
+          .then(function() {
+            document.body.style.overflow = '';
             resolve();
           })
           .catch(function (err) {
@@ -365,5 +445,6 @@
     checkUsernameAvailable: checkUsernameAvailable,
     renderHeader: renderHeader,
     enforceFirstTimeGate: enforceFirstTimeGate,
+    processImage: processImage
   };
 })(window);
