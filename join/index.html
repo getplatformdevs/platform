@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Join Platform</title>
-<link rel="icon" type="image/png" href="https://getplatform.pages.dev/justlogo.png">
+<link rel="icon" type="image/png" href="/justlogo.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -217,6 +217,12 @@
   }
 
   .field-input:disabled{ background:var(--paper-dim); }
+
+  .field-input.mono{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+    letter-spacing:0.01em;
+  }
 
   .field-hint{
     font-family:'IBM Plex Mono', monospace;
@@ -461,14 +467,14 @@
 </script>
 
   <div class="watermark" aria-hidden="true">
-    <img src="https://getplatform.pages.dev/justlogo.png" alt="">
-    <img src="https://getplatform.pages.dev/justlogo.png" alt="">
-    <img src="https://getplatform.pages.dev/justlogo.png" alt="">
+    <img src="/justlogo.png" alt="">
+    <img src="/justlogo.png" alt="">
+    <img src="/justlogo.png" alt="">
   </div>
 
   <div class="join-wrapper">
     <div class="join-card">
-      <img src="https://getplatform.pages.dev/justlogo.png" alt="Platform Logo" class="join-logo">
+      <img src="/justlogo.png" alt="Platform Logo" class="join-logo">
       
       <h1 class="join-title">Join Platform</h1>
       <p class="join-subtitle">Join Platform to get structured recommendations</p>
@@ -477,12 +483,12 @@
       <div class="auth-error" id="authError"></div>
 
       <form class="auth-form" id="authForm" autocomplete="on">
-        <div class="field-wrap">
+        <div class="field-wrap" id="usernameWrap">
           <label class="field-label" for="username">Username</label>
           <input class="field-input" type="text" id="username" name="username" placeholder="yourname" autocomplete="username" maxlength="20" />
           <p class="username-status" id="usernameStatus">&nbsp;</p>
         </div>
-        <div class="field-wrap">
+        <div class="field-wrap" id="passwordWrap">
           <label class="field-label" for="password">Password</label>
           <input class="field-input" type="password" id="password" name="password" placeholder="••••••••••••" autocomplete="current-password" />
           <p class="field-hint">Enter to log in · Shift + Enter to create account</p>
@@ -495,16 +501,21 @@
           <p class="strength-label" id="strengthLabel"></p>
           <p class="caps-warning" id="capsWarning">⚠ Caps Lock is on.</p>
         </div>
+        <div class="field-wrap" id="floweryWrap" style="display:none;">
+          <label class="field-label" for="floweryKey">Flowery Key</label>
+          <input class="field-input mono" type="text" id="floweryKey" name="floweryKey" placeholder="SDIFK-..." autocomplete="off" spellcheck="false" />
+          <p class="field-hint">Paste the Flowery Key you saved when you created your account, then click Log In.</p>
+        </div>
       </form>
 
-      <div class="btn-row">
+      <div class="btn-row" id="btnRow">
         <button type="button" class="btn btn-solid" id="loginBtn">Log In</button>
         <button type="button" class="btn btn-ghost" id="createBtn">Create Account</button>
       </div>
 
       <p class="mode-hint" id="statusHint">&nbsp;</p>
 
-      <p class="recover-hint">Forgot your password? <button type="button" id="recoverHintBtn">Recover using your Flowery Key</button></p>
+      <p class="recover-hint">Forgot your password? <button type="button" id="recoverHintBtn">Log in with your Flowery Key</button></p>
 
       <p class="disclaimer">We never post on your behalf unless prompted.</p>
     </div>
@@ -517,7 +528,7 @@
 
   // If already logged in, don't sit on the join page.
   if (PlatformAuth.getSession()) {
-    window.location.href = 'https://getplatform.pages.dev/';
+    window.location.href = '/';
   }
 
   // toast() is already defined globally by the watchdog script right after
@@ -526,16 +537,40 @@
   const form = document.getElementById('authForm');
   const usernameInput = document.getElementById('username');
   const passwordInput = document.getElementById('password');
+  const floweryInput = document.getElementById('floweryKey');
+  const usernameWrap = document.getElementById('usernameWrap');
+  const passwordWrap = document.getElementById('passwordWrap');
+  const floweryWrap = document.getElementById('floweryWrap');
   const loginBtn = document.getElementById('loginBtn');
   const createBtn = document.getElementById('createBtn');
   const errorEl = document.getElementById('authError');
   const statusHint = document.getElementById('statusHint');
+  const recoverHintBtn = document.getElementById('recoverHintBtn');
+
+  let floweryMode = false;
+
+  function setFloweryMode(on){
+    floweryMode = on;
+    usernameWrap.style.display = on ? 'none' : '';
+    passwordWrap.style.display = on ? 'none' : '';
+    floweryWrap.style.display = on ? '' : 'none';
+    createBtn.style.display = on ? 'none' : '';
+    recoverHintBtn.textContent = on ? 'Use your username & password instead' : 'Log in with your Flowery Key';
+    showError('');
+    if (on) {
+      floweryInput.value = '';
+      floweryInput.focus();
+    } else {
+      usernameInput.focus();
+    }
+  }
 
   function setBusy(busy, label){
     loginBtn.disabled = busy;
     createBtn.disabled = busy;
     usernameInput.disabled = busy;
     passwordInput.disabled = busy;
+    floweryInput.disabled = busy;
     statusHint.textContent = busy ? label : '\u00A0';
   }
 
@@ -544,41 +579,55 @@
     errorEl.style.display = msg ? 'block' : 'none';
   }
 
-  // Note: if username and password are IDENTICAL, that's treated as a
-  // Flowery Key (SDIFK) login attempt on the server -- so the normal
-  // 3-20 char / letters-numbers-underscores username format is only
-  // enforced when the two fields differ (i.e. an actual username+password
-  // login or signup).
   function readCredentials({ forSignup } = {}){
     const username = usernameInput.value.trim();
     const password = passwordInput.value;
-    const isSdifkAttempt = !forSignup && username && username === password;
 
-    if (!isSdifkAttempt) {
-      if (!USERNAME_RE.test(username)) {
-        showError('Username must be 3-20 characters: letters, numbers, underscores only.');
-        return null;
-      }
-      if (password.length < 12) {
-        showError('Password must be at least 12 characters.');
-        return null;
-      }
-      if (forSignup && username.toLowerCase() === password.toLowerCase()) {
-        showError("Your password can't be the same as your username.");
-        return null;
-      }
+    if (!USERNAME_RE.test(username)) {
+      showError('Username must be 3-20 characters: letters, numbers, underscores only.');
+      return null;
+    }
+    if (password.length < 12) {
+      showError('Password must be at least 12 characters.');
+      return null;
+    }
+    if (forSignup && username.toLowerCase() === password.toLowerCase()) {
+      showError("Your password can't be the same as your username.");
+      return null;
     }
     showError('');
     return { username, password };
   }
 
   async function login(){
+    if (floweryMode) {
+      const key = floweryInput.value.trim();
+      if (!key) { showError('Enter your Flowery Key.'); return; }
+      showError('');
+      setBusy(true, 'Verifying Flowery Key\u2026');
+      try {
+        // The server treats an identical identifier/password pair as a
+        // Flowery Key (SDIFK) login attempt and verifies it against the
+        // stored key -- same check as before, just a proper field for it now.
+        await PlatformAuth.login(key, key);
+        window.location.href = '/';
+      } catch (err) {
+        console.error('Flowery Key login failed:', err);
+        const msg = /timed out/i.test(err?.message || '') ? err.message : (err.message || 'That Flowery Key is not correct.');
+        showError(msg);
+        toast(msg, 'Login failed');
+      } finally {
+        setBusy(false, '');
+      }
+      return;
+    }
+
     const creds = readCredentials();
     if (!creds) return;
     setBusy(true, 'Logging in\u2026');
     try {
       await PlatformAuth.login(creds.username, creds.password);
-      window.location.href = 'https://getplatform.pages.dev/';
+      window.location.href = '/';
     } catch (err) {
       console.error('Login failed:', err);
       const msg = /timed out/i.test(err?.message || '') ? err.message : (err.message || 'Invalid username or password.');
@@ -590,6 +639,7 @@
   }
 
   async function createAccount(){
+    if (floweryMode) return; // account creation isn't available from the Flowery Key view
     const creds = readCredentials({ forSignup: true });
     if (!creds) return;
     setBusy(true, 'Creating account\u2026');
@@ -598,7 +648,7 @@
       // Land on the home page -- the Flowery Key gate (platform-auth.js)
       // will immediately take over there and block everything else until
       // the key is saved and confirmed.
-      window.location.href = 'https://getplatform.pages.dev/';
+      window.location.href = '/';
     } catch (err) {
       console.error('Sign up failed:', err);
       const msg = /timed out/i.test(err?.message || '') ? err.message : (err.message || 'That username is taken, or something went wrong.');
@@ -700,13 +750,9 @@
     }, 400);
   });
 
-  // --- "Forgot your password?" -- advertise the Flowery Key recovery path ---
-  document.getElementById('recoverHintBtn').addEventListener('click', () => {
-    toast(
-      'Type your Flowery Key into both the Username and Password fields, then click Log In.',
-      'Recover with your Flowery Key'
-    );
-    usernameInput.focus();
+  // --- "Forgot your password?" -- switch to a dedicated Flowery Key field ---
+  recoverHintBtn.addEventListener('click', () => {
+    setFloweryMode(!floweryMode);
   });
 
   loginBtn.addEventListener('click', login);
@@ -717,7 +763,7 @@
   form.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (e.shiftKey) {
+    if (e.shiftKey && !floweryMode) {
       createAccount();
     } else {
       login();

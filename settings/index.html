@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — Platform</title>
-<link rel="icon" type="image/png" href="https://getplatform.pages.dev/justlogo.png">
+<link rel="icon" type="image/png" href="/justlogo.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -564,8 +564,8 @@
 <body>
 
 <header>
-  <a class="brand" href="https://getplatform.pages.dev/">
-    <img src="https://getplatform.pages.dev/justlogo.png" alt="">
+  <a class="brand" href="/">
+    <img src="/justlogo.png" alt="">
     <span>Platform</span>
   </a>
   <div class="auth" id="authArea">
@@ -674,7 +674,7 @@
 
   const session = PlatformAuth.getSession();
   if (!session) {
-    window.location.href = 'https://getplatform.pages.dev/join';
+    window.location.href = '/join';
   }
 
   PlatformAuth.renderHeader(authArea);

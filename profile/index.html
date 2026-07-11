@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Your Profile — Platform</title>
-<link rel="icon" type="image/png" href="https://getplatform.pages.dev/justlogo.png">
+<link rel="icon" type="image/png" href="/justlogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -115,8 +115,8 @@
 <body>
 
 <header>
-  <a class="brand" href="https://getplatform.pages.dev/">
-    <img src="https://getplatform.pages.dev/justlogo.png" alt="">
+  <a class="brand" href="/">
+    <img src="/justlogo.png" alt="">
     <span>Platform</span>
   </a>
   <div class="auth" id="authArea">
@@ -196,7 +196,7 @@
         <span class="handle is-loading" id="handleText"></span>
       </div>
       <span class="member-since" id="memberSince"></span>
-      <p class="profile-note">Username changes aren't available yet on the new single-table account system. Head to <a href="https://getplatform.pages.dev/settings">Settings</a> to manage your password and Flowery Key.</p>
+      <p class="profile-note">Username changes aren't available yet on the new single-table account system. Head to <a href="/settings">Settings</a> to manage your password and Flowery Key.</p>
     </div>
   </div>
 </main>
@@ -222,7 +222,7 @@
 
   const session = PlatformAuth.getSession();
   if (!session) {
-    window.location.href = 'https://getplatform.pages.dev/join';
+    window.location.href = '/join';
   }
 
   PlatformAuth.renderHeader(authArea);

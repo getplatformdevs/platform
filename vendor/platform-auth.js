@@ -125,7 +125,7 @@
 
   function logout() {
     clearSession();
-    window.location.href = 'https://getplatform.pages.dev/join';
+    window.location.href = '/join';
   }
 
   function takePendingSdifk() {
@@ -153,7 +153,7 @@
     var session = getSession();
     if (!session) {
       authAreaEl.innerHTML =
-        '<a href="https://getplatform.pages.dev/join" class="btn btn-solid" style="color:#ffffff; text-decoration:none;">Join</a>';
+        '<a href="/join" class="btn btn-solid" style="color:#ffffff; text-decoration:none;">Join</a>';
       return;
     }
     
@@ -164,8 +164,8 @@
       '<button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false" title="@' + session.username + '">' +
       '<img src="' + avatarSrc + '" alt=""></button>' +
       '<div class="user-dropdown" id="userDropdown">' +
-      '<a class="dropdown-item" href="https://getplatform.pages.dev/profile">' + USER_SVG + 'Profile</a>' +
-      '<a class="dropdown-item" href="https://getplatform.pages.dev/settings">' + GEAR_SVG + 'Settings</a>' +
+      '<a class="dropdown-item" href="/profile">' + USER_SVG + 'Profile</a>' +
+      '<a class="dropdown-item" href="/settings">' + GEAR_SVG + 'Settings</a>' +
       '</div>' +
       '<button class="btn btn-ghost" id="signOutBtn">Sign Out</button>' +
       '</div>';
