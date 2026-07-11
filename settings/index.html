@@ -554,6 +554,19 @@
   .toast-close{ background:none; border:none; cursor:pointer; color:var(--soft); padding:2px; line-height:0; flex-shrink:0; }
   .toast-close:hover{ color:var(--ink); }
 
+  /* ---------- USERNAME LIVE STATUS (matches join page) ---------- */
+
+  .un-status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    min-height:16px;
+    margin:-2px 0 14px;
+  }
+  .un-status.checking{ color:var(--soft); }
+  .un-status.available{ color:#1a7f37; }
+  .un-status.taken,
+  .un-status.invalid{ color:#b3261e; }
+
   @media (max-width:640px){
     .toast-stack{ left:16px; right:16px; top:16px; max-width:none; }
     .settings-row{ flex-direction:column; align-items:flex-start; }
@@ -636,7 +649,9 @@
       <div class="row-info">
         <div class="row-label">Username</div>
         <div class="row-value is-loading" id="usernameValue">&nbsp;</div>
+        <div class="row-hint">This is how other people find and @mention you.</div>
       </div>
+      <button class="btn btn-ghost" id="changeUsernameBtn">Change Username</button>
     </div>
     <div class="settings-row">
       <div class="row-info">
@@ -671,6 +686,9 @@
   const passwordValueEl = document.getElementById('passwordValue');
   const recoverPasswordBtn = document.getElementById('recoverPasswordBtn');
   const changePasswordBtn = document.getElementById('changePasswordBtn');
+  const changeUsernameBtn = document.getElementById('changeUsernameBtn');
+
+  const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 
   const session = PlatformAuth.getSession();
   if (!session) {
@@ -840,8 +858,120 @@
     [sdifkInput, input1, input2].forEach(el => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } }));
   }
 
+  // ---------- Change Username (live availability check, no Flowery Key needed) ----------
+
+  function openChangeUsernameModal(){
+    modalRoot.innerHTML = `
+      <div class="un-backdrop" id="vfBackdrop">
+        <div class="un-card">
+          <button class="un-close" id="vfClose" aria-label="Close">${CLOSE_SVG}</button>
+          <div class="un-title">Change your username</div>
+          <div class="un-desc">Pick a new @handle. 3-20 characters: letters, numbers, underscores. Your Flowery Key stays the same either way.</div>
+          <div class="un-input-row">
+            <input class="un-input" id="vfUsername" type="text" autocomplete="username" spellcheck="false" maxlength="20" placeholder="newusername" value="${session.username.replace(/"/g, '&quot;')}">
+          </div>
+          <div class="un-status" id="vfUsernameStatus">&nbsp;</div>
+          <div class="un-error" id="vfError"></div>
+          <div class="un-actions">
+            <button class="un-btn un-btn-ghost" id="vfCancel">Cancel</button>
+            <button class="un-btn un-btn-solid" id="vfSubmit" disabled>Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+    const backdrop = document.getElementById('vfBackdrop');
+    bindBackdropClose(backdrop);
+    document.getElementById('vfClose').addEventListener('click', closeModal);
+    document.getElementById('vfCancel').addEventListener('click', closeModal);
+
+    const input = document.getElementById('vfUsername');
+    const statusEl = document.getElementById('vfUsernameStatus');
+    const errorEl = document.getElementById('vfError');
+    const submitBtn = document.getElementById('vfSubmit');
+    input.focus();
+    input.select();
+
+    let checkTimer = null;
+    let checkToken = 0;
+    let currentIsAvailable = false;
+
+    function setStatus(text, cls){
+      statusEl.textContent = text;
+      statusEl.className = 'un-status' + (cls ? ' ' + cls : '');
+    }
+
+    input.addEventListener('input', () => {
+      const value = input.value.trim();
+      errorEl.textContent = '';
+      clearTimeout(checkTimer);
+      currentIsAvailable = false;
+      submitBtn.disabled = true;
+
+      if (value.toLowerCase() === session.username.toLowerCase()) {
+        setStatus('That\u2019s already your username.', '');
+        return;
+      }
+      if (!value) { setStatus('\u00A0', ''); return; }
+      if (!USERNAME_RE.test(value)) {
+        setStatus('3-20 characters: letters, numbers, underscores.', 'invalid');
+        return;
+      }
+
+      setStatus('Checking\u2026', 'checking');
+      const myToken = ++checkToken;
+      checkTimer = setTimeout(() => {
+        PlatformAuth.checkUsernameAvailable(value)
+          .then((res) => {
+            if (myToken !== checkToken) return; // stale response
+            if (res.available) {
+              setStatus('\u2713 Available', 'available');
+              currentIsAvailable = true;
+              submitBtn.disabled = false;
+            } else {
+              setStatus('\u2715 Already taken', 'taken');
+            }
+          })
+          .catch(() => {
+            if (myToken !== checkToken) return;
+            setStatus('\u00A0', '');
+          });
+      }, 400);
+    });
+
+    async function submit(){
+      const value = input.value.trim();
+      errorEl.textContent = '';
+      if (!USERNAME_RE.test(value)) {
+        errorEl.textContent = '3-20 characters: letters, numbers, underscores.';
+        return;
+      }
+      if (!currentIsAvailable) {
+        errorEl.textContent = 'Choose an available username first.';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving\u2026';
+      try {
+        const data = await PlatformAuth.changeUsername(value);
+        usernameValueEl.textContent = '@' + data.username;
+        const headerLabel = document.getElementById('avatarBtn');
+        if (headerLabel) headerLabel.title = '@' + data.username;
+        toast('Your username is now @' + data.username + '.', 'Username', 'ok');
+        closeModal();
+      } catch (e) {
+        console.error('Username change failed:', e);
+        errorEl.textContent = e.message || "Couldn't update your username. Try again.";
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save';
+      }
+    }
+    submitBtn.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!submitBtn.disabled) submit(); } });
+  }
+
   recoverPasswordBtn.addEventListener('click', openRecoverPasswordModal);
   changePasswordBtn.addEventListener('click', openChangePasswordModal);
+  changeUsernameBtn.addEventListener('click', openChangeUsernameModal);
 </script>
 
 </body>
