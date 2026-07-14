@@ -138,6 +138,25 @@
     return callFn('check-username', { username: username }, { timeoutMs: 8000 });
   }
 
+  /* ---------- PUBLIC PROFILES (/@username), FOLLOW, LIKE/DISLIKE ---------- */
+  // These hit new edge functions (public-profile, follow-toggle, video-react).
+  // public-profile works whether or not the caller is logged in -- callFn
+  // already attaches the Authorization header automatically when a session
+  // exists, which is what lets the function also return isFollowing/isSelf
+  // and the caller's own reactions on each video.
+
+  function getPublicProfile(username) {
+    return callFn('public-profile', { username: username }, { timeoutMs: 12000 });
+  }
+
+  function toggleFollow(username) {
+    return callFn('follow-toggle', { username: username });
+  }
+
+  function toggleVideoReaction(videoId, reaction) {
+    return callFn('video-react', { video_id: videoId, reaction: reaction });
+  }
+
   function changeUsername(newUsername) {
     return callFn('account-username', { newUsername: newUsername }).then(function (data) {
       var session = getSession();
@@ -218,29 +237,37 @@
     var style = document.createElement('style');
     style.id = 'pf-header-styles';
     style.textContent =
-      /* Hexagon "Connect to Creation" button. clip-path gives a true
-         hexagon rather than faking it with a rotated square. */
-      '.hex-btn{position:relative;width:38px;height:38px;flex-shrink:0;background:#0a0a0a;color:#fff;' +
-      'display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;' +
-      'clip-path:polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);' +
-      'transition:transform .15s ease, background .15s ease;}' +
+      /* "Connect, To Creation" button. The hexagon (clip-path gives a true
+         hexagon rather than faking it with a rotated square) is now just the
+         icon chip on the left; the label sits in an attached pill to its
+         right so the text is always visible, not just on hover.
+
+         Important: the clip-path lives on .hex-icon only, NOT on .hex-btn
+         itself. Previously it was on .hex-btn, which meant the .hex-dot
+         (green "connected" indicator) -- a child of that same clipped
+         element -- got sliced by the hexagon's corner cut and only ever
+         showed a sliver. Keeping .hex-dot outside the clipped icon (as a
+         sibling positioned against the pill) means it now renders as a
+         full circle overlaying the button instead of getting cut away. */
+      '.hex-btn{position:relative;display:flex;align-items:center;height:38px;flex-shrink:0;' +
+      'background:#0a0a0a;color:#fff;text-decoration:none;border-radius:0 999px 999px 0;' +
+      'overflow:hidden;cursor:pointer;transition:transform .15s ease, background .15s ease;}' +
       '.hex-btn:hover{background:#222;transform:translateY(-1px);}' +
-      '.hex-btn:active{transform:translateY(0) scale(0.94);}' +
-      '.hex-btn svg{width:16px;height:16px;}' +
-      '.hex-btn .hex-dot{position:absolute;top:1px;right:1px;width:8px;height:8px;border-radius:50%;' +
-      'background:#3ecf6e;border:1.5px solid #fff;display:none;}' +
+      '.hex-btn:active{transform:translateY(0) scale(0.97);}' +
+      '.hex-icon{position:relative;width:38px;height:38px;flex-shrink:0;display:flex;' +
+      'align-items:center;justify-content:center;' +
+      'clip-path:polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);}' +
+      '.hex-icon svg{width:16px;height:16px;}' +
+      '.hex-label{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.02em;' +
+      'white-space:nowrap;padding:0 16px 0 2px;}' +
+      '.hex-btn .hex-dot{position:absolute;top:1px;left:26px;width:8px;height:8px;' +
+      'border-radius:50%;background:#3ecf6e;border:1.5px solid #0a0a0a;display:none;z-index:2;}' +
       '.hex-btn.is-connected .hex-dot{display:block;}' +
-      /* small floating label, mirrors the .toast font language */
-      '.hex-tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-4px);' +
-      'background:#0a0a0a;color:#fff;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;' +
-      'padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;' +
-      'transition:opacity .15s ease, transform .15s ease;z-index:60;}' +
-      '.hex-btn:hover .hex-tip{opacity:1;transform:translateX(-50%) translateY(0);}' +
       '.dropdown-sep{height:1px;background:var(--line,#e4e4e0);margin:6px 4px;}' +
       '.dropdown-item.danger{color:#b3261e;}' +
       '.dropdown-item.danger svg{color:#b3261e;}' +
       '.dropdown-item.is-loading{opacity:.55;pointer-events:none;}' +
-      '@media (max-width:640px){.hex-tip{display:none;}}';
+      '@media (max-width:640px){.hex-label{display:none;}.hex-btn{border-radius:50%;width:38px;}}';
     document.head.appendChild(style);
   }
 
@@ -259,10 +286,10 @@
     // Order matters here: the hexagon sits to the LEFT of the avatar/dropdown,
     // which is what pushes the user's avatar + its dropdown further right.
     authAreaEl.innerHTML =
-      '<a class="hex-btn" id="connectHexBtn" href="/connect" aria-label="Connect to Creation">' +
-      HEX_SVG +
+      '<a class="hex-btn" id="connectHexBtn" href="/connect" aria-label="Connect, To Creation">' +
+      '<span class="hex-icon">' + HEX_SVG + '</span>' +
       '<span class="hex-dot"></span>' +
-      '<span class="hex-tip">Connect to Creation</span>' +
+      '<span class="hex-label">Connect, To Creation</span>' +
       '</a>' +
       '<div class="user-menu" id="userMenu">' +
       '<button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false" title="@' + session.username + '">' +
@@ -600,6 +627,9 @@
     verifyCreatorVideo: verifyCreatorVideo,
     syncCreatorVideos: syncCreatorVideos,
     disconnectCreator: disconnectCreator,
-    startAutoSync: startAutoSync
+    startAutoSync: startAutoSync,
+    getPublicProfile: getPublicProfile,
+    toggleFollow: toggleFollow,
+    toggleVideoReaction: toggleVideoReaction
   };
 })(window);

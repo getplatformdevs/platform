@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — Platform</title>
+<link rel="icon" type="image/png" href="/justlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0a;
+    --paper:#ffffff;
+    --paper-dim:#f6f6f4;
+    --line:#e4e4e0;
+    --mid:#8c8c88;
+    --soft:#b9b9b4;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-font-smoothing:antialiased; }
+  body{ background:var(--paper); color:var(--ink); font-family:'Inter', sans-serif; overflow-x:hidden; }
+  a, button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; padding:20px 32px; border-bottom:1px solid var(--line); position:relative; z-index:30; }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+  .brand img{ width:22px; height:22px; object-fit:contain; filter:grayscale(1) contrast(1.15); }
+  .brand span{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:18px; letter-spacing:-0.01em; }
+  .auth{ display:flex; align-items:center; gap:10px; }
+  .btn{ font-family:'Inter', sans-serif; font-weight:500; font-size:14px; padding:9px 18px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; white-space:nowrap; border:1px solid transparent; }
+  .btn:active{ transform:translateY(1px) scale(0.98); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  .btn-ghost{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover:not(:disabled){ border-color:var(--ink); box-shadow:0 1px 0 var(--ink); }
+  .btn-solid{ background:var(--ink); color:var(--paper); border:1px solid var(--ink); }
+  .btn-solid:hover:not(:disabled){ box-shadow:0 4px 14px rgba(0,0,0,0.25); }
+  .auth-skeleton{ width:64px; height:36px; border-radius:999px; background:var(--paper-dim); }
+
+  .user-menu{ position:relative; display:flex; align-items:center; gap:10px; }
+  .avatar-btn{ width:36px; height:36px; border-radius:50%; padding:0; border:1px solid var(--line); background:var(--paper-dim); cursor:pointer; overflow:hidden; flex-shrink:0; transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .avatar-btn:hover{ border-color:var(--ink); box-shadow:0 1px 0 var(--ink); }
+  .avatar-btn:active{ transform:translateY(1px) scale(0.96); }
+  .avatar-btn img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .user-dropdown{ position:absolute; top:calc(100% + 12px); right:0; min-width:190px; background:#ffffff; border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04); padding:8px; opacity:0; transform:translateY(-6px) scale(0.97); pointer-events:none; transition:opacity .16s ease, transform .16s ease; z-index:50; }
+  .user-dropdown.open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .dropdown-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font-size:14px; font-weight:500; color:var(--ink); text-decoration:none; transition:background .12s ease; border:none; background:none; width:100%; cursor:pointer; text-align:left; }
+  .dropdown-item:hover{ background:var(--paper-dim); }
+  .dropdown-item svg{ width:16px; height:16px; color:var(--mid); flex-shrink:0; }
+
+  /* ---------- PROFILE ---------- */
+  .profile-wrap{ max-width:1000px; margin:0 auto; padding:64px 32px 100px; }
+
+  .profile-header{ display:flex; align-items:center; gap:32px; }
+  .profile-avatar{ width:150px; height:150px; min-width:150px; border-radius:50%; overflow:hidden; border:1px solid var(--line); background:var(--paper-dim); flex-shrink:0; }
+  .profile-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  .identity{ display:flex; flex-direction:column; gap:10px; min-width:0; flex:1; }
+  .handle-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .handle{ font-family:'Segoe UI', 'Segoe UI Variable', -apple-system, Roboto, ui-sans-serif, sans-serif; font-weight:800; font-size:32px; line-height:1.1; color:#000000; letter-spacing:-0.01em; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .handle.is-loading{ width:200px; height:26px; border-radius:7px; background:var(--paper-dim); }
+  .member-since{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--mid); }
+
+  .stat-row{ display:flex; gap:22px; }
+  .stat{ display:flex; align-items:baseline; gap:6px; font-size:13.5px; color:var(--mid); }
+  .stat b{ color:var(--ink); font-weight:600; }
+
+  .follow-btn{ margin-top:2px; }
+  .follow-btn.is-following{ background:var(--paper); color:var(--ink); border:1px solid var(--ink); }
+
+  .channel-badge{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--mid); margin-top:2px; }
+  .channel-badge img{ width:20px; height:20px; border-radius:50%; object-fit:cover; border:1px solid var(--line); }
+
+  .section-head{ margin:52px 0 20px; display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:14px; }
+  .section-head h2{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:19px; letter-spacing:-0.01em; }
+
+  .video-list{ display:flex; flex-direction:column; gap:14px; }
+
+  .video-card{ display:flex; gap:16px; border:1px solid var(--line); border-radius:16px; padding:12px; transition:border-color .15s ease, box-shadow .15s ease; cursor:pointer; background:var(--paper); }
+  .video-card:hover{ border-color:var(--ink); box-shadow:0 4px 14px rgba(0,0,0,0.06); }
+  .video-thumb{ width:200px; min-width:200px; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:var(--paper-dim); position:relative; }
+  .video-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .video-thumb .play-badge{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(10,10,10,0); transition:background .15s ease; }
+  .video-card:hover .play-badge{ background:rgba(10,10,10,0.18); }
+  .play-badge svg{ width:34px; height:34px; color:#fff; opacity:0; transition:opacity .15s ease; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
+  .video-card:hover .play-badge svg{ opacity:1; }
+
+  .video-meta{ display:flex; flex-direction:column; justify-content:center; gap:8px; min-width:0; flex:1; }
+  .video-title{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:15px; line-height:1.35; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .video-date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--mid); }
+
+  .reaction-row{ display:flex; align-items:center; gap:8px; margin-top:2px; }
+  .reaction-btn{ display:flex; align-items:center; gap:5px; border:1px solid var(--line); background:var(--paper); border-radius:999px; padding:5px 11px; font-size:12px; font-weight:500; color:var(--mid); cursor:pointer; transition:border-color .15s ease, color .15s ease, background .15s ease; }
+  .reaction-btn:hover{ border-color:var(--ink); color:var(--ink); }
+  .reaction-btn svg{ width:14px; height:14px; }
+  .reaction-btn.active-like{ background:#0a0a0a; color:#fff; border-color:#0a0a0a; }
+  .reaction-btn.active-dislike{ background:#fdecea; color:#b3261e; border-color:#f3c6c2; }
+
+  .empty-state{ color:var(--mid); font-size:14px; padding:40px 0; text-align:center; }
+
+  @media (max-width:640px){
+    .profile-header{ flex-direction:column; align-items:flex-start; gap:18px; }
+    .profile-avatar{ width:110px; height:110px; min-width:110px; }
+    .handle{ font-size:24px; max-width:70vw; }
+    .video-card{ flex-direction:column; }
+    .video-thumb{ width:100%; min-width:0; }
+  }
+
+  /* ---------- PLAYER MODAL ---------- */
+  .player-backdrop{ position:fixed; inset:0; background:rgba(10,10,10,0.82); z-index:200; display:flex; align-items:center; justify-content:center; padding:24px; }
+  .player-card{ width:100%; max-width:920px; background:#000; border-radius:16px; overflow:hidden; position:relative; box-shadow:0 30px 80px rgba(0,0,0,0.5); }
+  .player-frame-wrap{ position:relative; width:100%; aspect-ratio:16/9; background:#000; }
+  .player-frame-wrap iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .player-close{ position:absolute; top:-44px; right:0; background:none; border:none; color:#fff; cursor:pointer; padding:6px; }
+  .player-close svg{ width:26px; height:26px; }
+  .player-title{ padding:14px 18px; background:#0a0a0a; color:#fff; font-family:'Space Grotesk', sans-serif; font-size:14px; font-weight:500; }
+
+  /* ---------- TOASTS ---------- */
+  .toast-stack{ position:fixed; top:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; max-width:360px; pointer-events:none; }
+  .toast{ background:#ffffff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px; box-shadow:0 20px 50px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.06); pointer-events:auto; animation:toastIn .3s cubic-bezier(.2,.9,.25,1) forwards; }
+  .toast.leaving{ animation:toastOut .18s ease forwards; }
+  @keyframes toastIn{ from{ opacity:0; transform:translateY(-8px) scale(.97); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes toastOut{ to{ opacity:0; transform:translateX(30px) scale(.96); } }
+  .toast-icon{ width:22px; height:22px; border-radius:50%; background:#fdecea; color:#b3261e; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .toast-icon.ok{ background:#e9f7ee; color:#1e8e3e; }
+  .toast-icon svg{ width:12px; height:12px; }
+  .toast-body{ flex:1; min-width:0; }
+  .toast-title{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:13.5px; margin-bottom:2px; }
+  .toast-msg{ font-size:12.5px; line-height:1.45; color:var(--mid); word-wrap:break-word; }
+  .toast-close{ background:none; border:none; cursor:pointer; color:var(--soft); padding:2px; line-height:0; flex-shrink:0; }
+  .toast-close:hover{ color:var(--ink); }
+  @media (max-width:640px){ .toast-stack{ left:16px; right:16px; top:16px; max-width:none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">
+    <img src="/justlogo.png" alt="">
+    <span>Platform</span>
+  </a>
+  <div class="auth" id="authArea">
+    <div class="auth-skeleton"></div>
+  </div>
+</header>
+
+<script>
+  (function(){
+    var toastStack = document.createElement('div');
+    toastStack.className = 'toast-stack';
+    document.body.appendChild(toastStack);
+
+    window.toast = function(message, title, kind){
+      title = title || 'Something went wrong';
+      var el = document.createElement('div');
+      el.className = 'toast';
+      var ok = kind === 'ok';
+      el.innerHTML =
+        '<div class="toast-icon' + (ok ? ' ok' : '') + '">' +
+          (ok
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 8v5M12 16.2v.01"/></svg>') +
+        '</div>' +
+        '<div class="toast-body"><div class="toast-title"></div><div class="toast-msg"></div></div>' +
+        '<button class="toast-close" aria-label="Dismiss">&times;</button>';
+      el.querySelector('.toast-title').textContent = title;
+      el.querySelector('.toast-msg').textContent = message;
+      toastStack.appendChild(el);
+      var timer;
+      function dismiss(){ clearTimeout(timer); el.classList.add('leaving'); setTimeout(function(){ el.remove(); }, 180); }
+      el.querySelector('.toast-close').addEventListener('click', dismiss);
+      timer = setTimeout(dismiss, 6000);
+      el.addEventListener('mouseenter', function(){ clearTimeout(timer); });
+      el.addEventListener('mouseleave', function(){ timer = setTimeout(dismiss, 3000); });
+    };
+
+    window.addEventListener('error', function(e){
+      var where = e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '';
+      window.toast('A script failed to run: ' + (e.message || 'unknown error') + where, 'Page error');
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      var msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+      window.toast('A background request failed: ' + msg, 'Page error');
+    });
+  })();
+</script>
+
+<main class="profile-wrap" id="profileWrap">
+  <div class="profile-header">
+    <div class="profile-avatar"><img id="avatarImg" alt="Profile picture"></div>
+    <div class="identity">
+      <div class="handle-row">
+        <span class="handle is-loading" id="handleText"></span>
+        <button class="btn btn-solid follow-btn" id="followBtn" style="display:none;">Follow</button>
+      </div>
+      <span class="member-since" id="memberSince"></span>
+      <div class="stat-row">
+        <span class="stat"><b id="followersCount">0</b> Followers</span>
+        <span class="stat"><b id="followingCount">0</b> Following</span>
+      </div>
+      <div class="channel-badge" id="channelBadge" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <h2>Videos</h2>
+  </div>
+  <div class="video-list" id="videoList"></div>
+</main>
+
+<div id="modalRoot"></div>
+
+<script src="/vendor/platform-auth.js"></script>
+<script>
+  const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#f6f6f4"/>
+      <circle cx="50" cy="38" r="18" fill="#b9b9b4"/>
+      <path d="M50 60c-22 0-36 12-36 28v6h72v-6c0-16-14-28-36-28z" fill="#b9b9b4"/>
+    </svg>`
+  );
+
+  const LIKE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v11"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path></svg>';
+  const DISLIKE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:scaleY(-1) scaleX(-1);"><path d="M7 10v11"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path></svg>';
+  const CLOSE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+
+  const authArea = document.getElementById('authArea');
+  const avatarImg = document.getElementById('avatarImg');
+  const handleText = document.getElementById('handleText');
+  const memberSince = document.getElementById('memberSince');
+  const followersCount = document.getElementById('followersCount');
+  const followingCount = document.getElementById('followingCount');
+  const followBtn = document.getElementById('followBtn');
+  const channelBadge = document.getElementById('channelBadge');
+  const videoList = document.getElementById('videoList');
+  const modalRoot = document.getElementById('modalRoot');
+
+  PlatformAuth.renderHeader(authArea);
+
+  // Path looks like /@clover or /@clover/ (rewritten here by /_redirects
+  // while the address bar keeps showing the original /@username URL).
+  function usernameFromPath() {
+    var path = window.location.pathname;
+    var match = path.match(/\/@([^\/]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  const username = usernameFromPath();
+  if (!username) {
+    window.location.href = '/';
+  }
+
+  let currentReactions = {};
+  let isSelf = false;
+
+  PlatformAuth.getPublicProfile(username).then(function (data) {
+    document.title = '@' + data.user.username + ' — Platform';
+    avatarImg.src = data.user.pfp || DEFAULT_AVATAR;
+    handleText.classList.remove('is-loading');
+    handleText.textContent = '@' + data.user.username;
+    followersCount.textContent = data.user.followers_count || 0;
+    followingCount.textContent = data.user.following_count || 0;
+    isSelf = !!data.isSelf;
+    currentReactions = data.myReactions || {};
+
+    if (data.user.created_at) {
+      const d = new Date(data.user.created_at);
+      memberSince.textContent = 'Member since ' + d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    }
+
+    if (data.channel) {
+      channelBadge.style.display = 'flex';
+      channelBadge.innerHTML =
+        (data.channel.thumbnail ? '<img src="' + data.channel.thumbnail + '" alt="">' : '') +
+        '<span>' + (data.channel.title || 'Connected creator') + '</span>';
+    }
+
+    if (!isSelf && PlatformAuth.getSession()) {
+      followBtn.style.display = 'inline-flex';
+      renderFollowState(!!data.isFollowing);
+      followBtn.addEventListener('click', function () {
+        followBtn.disabled = true;
+        PlatformAuth.toggleFollow(username)
+          .then(function (res) {
+            renderFollowState(!!res.following);
+            if (typeof res.followers_count === 'number') followersCount.textContent = res.followers_count;
+          })
+          .catch(function (err) {
+            window.toast(err.message || 'Could not update follow status.', 'Error');
+          })
+          .finally(function () { followBtn.disabled = false; });
+      });
+    }
+
+    renderVideos(data.videos || []);
+  }).catch(function (err) {
+    window.toast(err.message || 'Could not load that profile.', 'Error');
+    videoList.innerHTML = '<div class="empty-state">This profile could not be found.</div>';
+  });
+
+  function renderFollowState(following) {
+    followBtn.textContent = following ? 'Following' : 'Follow';
+    followBtn.classList.toggle('is-following', following);
+  }
+
+  function timeAgo(iso) {
+    var diffMs = Date.now() - new Date(iso).getTime();
+    var days = Math.floor(diffMs / 86400000);
+    if (days < 1) return 'today';
+    if (days === 1) return '1 day ago';
+    if (days < 30) return days + ' days ago';
+    var months = Math.floor(days / 30);
+    if (months < 12) return months + (months === 1 ? ' month ago' : ' months ago');
+    var years = Math.floor(months / 12);
+    return years + (years === 1 ? ' year ago' : ' years ago');
+  }
+
+  function renderVideos(videos) {
+    if (!videos.length) {
+      videoList.innerHTML = '<div class="empty-state">No videos yet.</div>';
+      return;
+    }
+
+    videoList.innerHTML = videos.map(function (v) {
+      var mine = currentReactions[v.id];
+      return (
+        '<div class="video-card" data-video-id="' + v.video_id + '" data-title="' + escapeHtml(v.title) + '">' +
+        '<div class="video-thumb"><img src="' + v.thumbnail_url + '" alt="" loading="lazy">' +
+        '<div class="play-badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>' +
+        '</div>' +
+        '<div class="video-meta">' +
+        '<div class="video-title">' + escapeHtml(v.title) + '</div>' +
+        '<div class="video-date">' + timeAgo(v.published_at) + '</div>' +
+        '<div class="reaction-row">' +
+        '<button class="reaction-btn like-btn' + (mine === 'like' ? ' active-like' : '') + '" data-video-row="' + v.id + '">' + LIKE_SVG + '<span class="like-count">' + (v.like_count || 0) + '</span></button>' +
+        '<button class="reaction-btn dislike-btn' + (mine === 'dislike' ? ' active-dislike' : '') + '" data-video-row="' + v.id + '">' + DISLIKE_SVG + '<span class="dislike-count">' + (v.dislike_count || 0) + '</span></button>' +
+        '</div>' +
+        '</div>' +
+        '</div>'
+      );
+    }).join('');
+
+    videoList.querySelectorAll('.video-card').forEach(function (card) {
+      card.addEventListener('click', function (e) {
+        if (e.target.closest('.reaction-btn')) return;
+        openPlayer(card.getAttribute('data-video-id'), card.getAttribute('data-title'));
+      });
+    });
+
+    videoList.querySelectorAll('.reaction-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!PlatformAuth.getSession()) {
+          window.toast('Join Platform to like or dislike videos.', 'Sign in required');
+          return;
+        }
+        var rowId = btn.getAttribute('data-video-row');
+        var reaction = btn.classList.contains('like-btn') ? 'like' : 'dislike';
+        btn.disabled = true;
+        PlatformAuth.toggleVideoReaction(rowId, reaction)
+          .then(function (res) {
+            currentReactions[rowId] = res.reaction;
+            var row = videoList.querySelector('[data-video-row="' + rowId + '"]').closest('.video-meta');
+            var likeBtn = row.querySelector('.like-btn');
+            var dislikeBtn = row.querySelector('.dislike-btn');
+            if (typeof res.like_count === 'number') likeBtn.querySelector('.like-count').textContent = res.like_count;
+            if (typeof res.dislike_count === 'number') dislikeBtn.querySelector('.dislike-count').textContent = res.dislike_count;
+            likeBtn.classList.toggle('active-like', res.reaction === 'like');
+            dislikeBtn.classList.toggle('active-dislike', res.reaction === 'dislike');
+          })
+          .catch(function (err) {
+            window.toast(err.message || 'Could not save your reaction.', 'Error');
+          })
+          .finally(function () { btn.disabled = false; });
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    var div = document.createElement('div');
+    div.textContent = s || '';
+    return div.innerHTML;
+  }
+
+  // Plays inline via the YouTube iframe API with the chrome stripped down
+  // as far as YouTube allows: modestbranding hides the YouTube logo,
+  // rel=0 keeps related-video suggestions to the same channel, and
+  // autoplay means the visitor never sees YouTube's own oversized center
+  // play button -- playback starts the instant the embed mounts.
+  function openPlayer(videoId, title) {
+    var backdrop = document.createElement('div');
+    backdrop.className = 'player-backdrop';
+    backdrop.innerHTML =
+      '<div class="player-card">' +
+      '<button class="player-close" aria-label="Close">' + CLOSE_SVG + '</button>' +
+      '<div class="player-frame-wrap">' +
+      '<iframe src="https://www.youtube.com/embed/' + encodeURIComponent(videoId) +
+        '?autoplay=1&modestbranding=1&rel=0&iv_load_policy=3&playsinline=1" ' +
+        'title="' + escapeHtml(title) + '" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>' +
+      '</div>' +
+      '<div class="player-title">' + escapeHtml(title) + '</div>' +
+      '</div>';
+    modalRoot.appendChild(backdrop);
+    document.body.style.overflow = 'hidden';
+
+    function close() {
+      backdrop.remove();
+      document.body.style.overflow = '';
+    }
+    backdrop.querySelector('.player-close').addEventListener('click', close);
+    backdrop.addEventListener('click', function (e) {
+      if (e.target === backdrop) close();
+    });
+    document.addEventListener('keydown', function onKey(e) {
+      if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); }
+    });
+  }
+</script>
+
+</body>
+</html>

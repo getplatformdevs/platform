@@ -1,0 +1,5 @@
+# Public profile pages: https://getplatform.pages.dev/@clover
+# This is a 200 rewrite (not a redirect) -- the browser's address bar keeps
+# showing /@username, but Cloudflare Pages actually serves /u/index.html,
+# which reads the username back out of window.location.pathname.
+/@*    /u/index.html   200
