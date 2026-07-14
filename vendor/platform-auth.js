@@ -151,6 +151,59 @@
 
   var USER_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"></circle><path d="M4.5 20c1.2-4.2 4-6.3 7.5-6.3s6.3 2.1 7.5 6.3"></path></svg>';
   var GEAR_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
+  var SYNC_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"></path><path d="M3 21v-5h5"></path></svg>';
+  var SIGNOUT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><path d="M16 17l5-5-5-5"></path><path d="M21 12H9"></path></svg>';
+  var HEX_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4.6v9.8L12 21l-8-4.6V6.6z"></path><path d="M12 8v4l3 1.6"></path></svg>';
+
+  /* ---------- CREATOR CONNECTION (YouTube via /connect) ---------- */
+
+  // Cached in-memory per pageload so header + /connect page don't both
+  // re-hit the network; call getCreatorConnection(true) to force a refresh
+  // (e.g. right after finishing the OAuth callback).
+  var connectionCache = null;
+
+  function getCreatorConnection(force) {
+    if (!getSession()) return Promise.resolve({ connected: false });
+    if (connectionCache && !force) return Promise.resolve(connectionCache);
+    return callFn('creator-connection-status', {}, { timeoutMs: 10000 })
+      .then(function (data) {
+        connectionCache = data;
+        return data;
+      })
+      .catch(function () {
+        // Non-fatal -- header should still render if this one call flakes.
+        return { connected: false };
+      });
+  }
+
+  // payload is { handle } or { channel_id } -- see /connect's "Advanced options".
+  function identifyCreatorChannel(payload) {
+    return callFn('identify-creator-channel', payload, { timeoutMs: 15000 }).then(function (data) {
+      connectionCache = null; // now pending, not the old cached state
+      return data;
+    });
+  }
+
+  function verifyCreatorVideo(url) {
+    return callFn('verify-creator-video', { url: url }, { timeoutMs: 15000 }).then(function (data) {
+      connectionCache = null; // force a fresh status fetch after verifying
+      return data;
+    });
+  }
+
+  function syncCreatorVideos() {
+    return callFn('sync-youtube-videos', {}, { timeoutMs: 20000 }).then(function (data) {
+      if (connectionCache) connectionCache.last_synced_at = data.synced_at;
+      return data;
+    });
+  }
+
+  function disconnectCreator() {
+    return callFn('creator-disconnect', {}).then(function (data) {
+      connectionCache = { connected: false };
+      return data;
+    });
+  }
 
   var DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
@@ -160,6 +213,37 @@
     '</svg>'
   );
 
+  function injectHeaderStyles() {
+    if (document.getElementById('pf-header-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'pf-header-styles';
+    style.textContent =
+      /* Hexagon "Connect to Creation" button. clip-path gives a true
+         hexagon rather than faking it with a rotated square. */
+      '.hex-btn{position:relative;width:38px;height:38px;flex-shrink:0;background:#0a0a0a;color:#fff;' +
+      'display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;' +
+      'clip-path:polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);' +
+      'transition:transform .15s ease, background .15s ease;}' +
+      '.hex-btn:hover{background:#222;transform:translateY(-1px);}' +
+      '.hex-btn:active{transform:translateY(0) scale(0.94);}' +
+      '.hex-btn svg{width:16px;height:16px;}' +
+      '.hex-btn .hex-dot{position:absolute;top:1px;right:1px;width:8px;height:8px;border-radius:50%;' +
+      'background:#3ecf6e;border:1.5px solid #fff;display:none;}' +
+      '.hex-btn.is-connected .hex-dot{display:block;}' +
+      /* small floating label, mirrors the .toast font language */
+      '.hex-tip{position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-4px);' +
+      'background:#0a0a0a;color:#fff;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.02em;' +
+      'padding:6px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;' +
+      'transition:opacity .15s ease, transform .15s ease;z-index:60;}' +
+      '.hex-btn:hover .hex-tip{opacity:1;transform:translateX(-50%) translateY(0);}' +
+      '.dropdown-sep{height:1px;background:var(--line,#e4e4e0);margin:6px 4px;}' +
+      '.dropdown-item.danger{color:#b3261e;}' +
+      '.dropdown-item.danger svg{color:#b3261e;}' +
+      '.dropdown-item.is-loading{opacity:.55;pointer-events:none;}' +
+      '@media (max-width:640px){.hex-tip{display:none;}}';
+    document.head.appendChild(style);
+  }
+
   function renderHeader(authAreaEl) {
     var session = getSession();
     if (!session) {
@@ -167,18 +251,29 @@
         '<a href="/join" class="btn btn-solid" style="color:#ffffff; text-decoration:none;">Join</a>';
       return;
     }
-    
+
+    injectHeaderStyles();
+
     var avatarSrc = session.pfp ? session.pfp : DEFAULT_AVATAR;
 
+    // Order matters here: the hexagon sits to the LEFT of the avatar/dropdown,
+    // which is what pushes the user's avatar + its dropdown further right.
     authAreaEl.innerHTML =
+      '<a class="hex-btn" id="connectHexBtn" href="/connect" aria-label="Connect to Creation">' +
+      HEX_SVG +
+      '<span class="hex-dot"></span>' +
+      '<span class="hex-tip">Connect to Creation</span>' +
+      '</a>' +
       '<div class="user-menu" id="userMenu">' +
       '<button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false" title="@' + session.username + '">' +
       '<img src="' + avatarSrc + '" alt=""></button>' +
       '<div class="user-dropdown" id="userDropdown">' +
       '<a class="dropdown-item" href="/profile">' + USER_SVG + 'Profile</a>' +
       '<a class="dropdown-item" href="/settings">' + GEAR_SVG + 'Settings</a>' +
+      '<a class="dropdown-item" id="syncDropdownItem" href="/connect" style="display:none;">' + SYNC_SVG + '<span id="syncDropdownLabel">Sync Videos</span></a>' +
+      '<div class="dropdown-sep"></div>' +
+      '<button class="dropdown-item danger" id="signOutBtn" type="button" style="width:100%;border:none;background:none;text-align:left;">' + SIGNOUT_SVG + 'Sign Out</button>' +
       '</div>' +
-      '<button class="btn btn-ghost" id="signOutBtn">Sign Out</button>' +
       '</div>';
 
     document.getElementById('avatarBtn').addEventListener('click', function (e) {
@@ -201,6 +296,48 @@
         if (btn) btn.setAttribute('aria-expanded', 'false');
       }
     });
+
+    // Reflect connection status on the hexagon (green dot) and reveal the
+    // "Sync Videos" row in the dropdown once a channel is actually linked.
+    getCreatorConnection().then(function (info) {
+      var hexBtn = document.getElementById('connectHexBtn');
+      var syncItem = document.getElementById('syncDropdownItem');
+      if (hexBtn && info && info.connected) hexBtn.classList.add('is-connected');
+      if (syncItem && info && info.connected) {
+        syncItem.style.display = 'flex';
+        syncItem.addEventListener('click', function (e) {
+          e.preventDefault();
+          if (syncItem.classList.contains('is-loading')) return;
+          syncItem.classList.add('is-loading');
+          var label = document.getElementById('syncDropdownLabel');
+          var prevLabel = label.textContent;
+          label.textContent = 'Syncing...';
+          syncCreatorVideos()
+            .then(function (res) {
+              label.textContent = res.added ? ('Synced ' + res.added + ' new') : 'Up to date';
+              setTimeout(function () { label.textContent = prevLabel; syncItem.classList.remove('is-loading'); }, 2200);
+            })
+            .catch(function (err) {
+              window.toast && window.toast(err.message || 'Sync failed.', 'Sync');
+              label.textContent = prevLabel;
+              syncItem.classList.remove('is-loading');
+            });
+        });
+      }
+    });
+  }
+
+  // Background auto-sync: while a page with the header is open, quietly
+  // check for new videos every 5 minutes so creators don't have to remember
+  // to hit "Sync Videos" themselves. GitHub Actions covers the case where
+  // nobody has the site open at all (see /.github/workflows/sync-creators.yml).
+  function startAutoSync() {
+    if (!getSession()) return;
+    setInterval(function () {
+      getCreatorConnection().then(function (info) {
+        if (info && info.connected) syncCreatorVideos().catch(function () {});
+      });
+    }, 5 * 60 * 1000);
   }
 
   function buildGateHtml(revealSdifk) {
@@ -457,6 +594,12 @@
     changeUsername: changeUsername,
     renderHeader: renderHeader,
     enforceFirstTimeGate: enforceFirstTimeGate,
-    processImage: processImage
+    processImage: processImage,
+    getCreatorConnection: getCreatorConnection,
+    identifyCreatorChannel: identifyCreatorChannel,
+    verifyCreatorVideo: verifyCreatorVideo,
+    syncCreatorVideos: syncCreatorVideos,
+    disconnectCreator: disconnectCreator,
+    startAutoSync: startAutoSync
   };
 })(window);

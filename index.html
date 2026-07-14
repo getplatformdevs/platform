@@ -807,6 +807,10 @@
   // throws up the full-screen gate and blocks everything else on the page
   // until it's cleared. Resolves immediately if there's nothing to gate.
   PlatformAuth.enforceFirstTimeGate();
+
+  // Checks for new videos on this creator's connected channel every 5
+  // minutes while the tab is open. No-op if not connected / not logged in.
+  PlatformAuth.startAutoSync();
 </script>
 
 </body>

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connecting… — Platform</title>
+<link rel="icon" type="image/png" href="/justlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#0a0a0a; --paper:#ffffff; --paper-dim:#f6f6f4; --line:#e4e4e0; --mid:#8c8c88; --soft:#b9b9b4; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink); font-family:'Inter', sans-serif;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .box{ text-align:center; max-width:360px; }
+  .spinner{
+    width:34px; height:34px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--ink);
+    margin:0 auto 22px; animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  h1{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:19px; margin-bottom:8px; }
+  p{ color:var(--mid); font-size:13.5px; line-height:1.5; }
+  .err{ color:#b3261e; }
+  a.btn{
+    display:inline-block; margin-top:18px; font-weight:500; font-size:14px; padding:10px 20px;
+    border-radius:999px; background:var(--ink); color:#fff; text-decoration:none;
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <div class="spinner" id="spinner"></div>
+    <h1 id="title">Connecting your channel…</h1>
+    <p id="msg">Hang tight, this only takes a second.</p>
+    <div id="actions"></div>
+  </div>
+
+<script src="/vendor/platform-auth.js"></script>
+<script>
+  // Must exactly match the value computed on /connect when the OAuth flow
+  // was started -- both are window.location.origin + '/connect/callback',
+  // so this stays correct automatically across environments/domains.
+  const REDIRECT_URI = window.location.origin + '/connect/callback';
+
+  function fail(message) {
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('title').textContent = 'Connection failed';
+    document.getElementById('title').classList.add('err');
+    document.getElementById('msg').textContent = message;
+    document.getElementById('actions').innerHTML = '<a class="btn" href="/connect">Back to Connect</a>';
+  }
+
+  function finish(message) {
+    window.location.href = '/connect?connected=1';
+  }
+
+  (function () {
+    const session = PlatformAuth.getSession();
+    if (!session) {
+      fail('You need to be signed in to connect a channel.');
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+    const code = params.get('code');
+    const state = params.get('state');
+    const expectedState = sessionStorage.getItem('platform_yt_oauth_state');
+    sessionStorage.removeItem('platform_yt_oauth_state');
+
+    if (error) {
+      fail(error === 'access_denied' ? 'You cancelled the connection.' : ('Google returned an error: ' + error));
+      return;
+    }
+    if (!code) {
+      fail('No authorization code came back from Google.');
+      return;
+    }
+    if (!state || state !== expectedState) {
+      fail('This connection request could not be verified. Please try again.');
+      return;
+    }
+
+    // The actual token exchange happens server-side in the
+    // youtube-oauth-callback edge function -- the client secret never
+    // touches the browser. All we send is the one-time code.
+    PlatformAuth.callFn('youtube-oauth-callback', { code: code, redirect_uri: REDIRECT_URI }, { timeoutMs: 20000 })
+      .then(function () {
+        finish();
+      })
+      .catch(function (err) {
+        fail(err.message || 'Could not finish connecting to YouTube.');
+      });
+  })();
+</script>
+</body>
+</html>

@@ -702,6 +702,7 @@
   // Blocks the whole page (including these buttons) until the Flowery Key
   // has been confirmed, for accounts that still owe us that.
   PlatformAuth.enforceFirstTimeGate();
+  PlatformAuth.startAutoSync();
 
   // ---------- shared modal close/escape plumbing ----------
 
