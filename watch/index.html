@@ -58,9 +58,92 @@
   .watch-wrap{ max-width:1400px; margin:0 auto; padding:40px 32px 100px; }
   .watch-grid{ display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:32px; align-items:start; }
 
-  .vplayer{ position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--line); }
+  .vplayer{ position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--line); touch-action:none; user-select:none; -webkit-user-select:none; }
   .vplayer iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
   .vplayer.sk{ background:var(--paper-dim); }
+
+  /* ================= custom player ================= */
+  .vplayer-inner{ position:absolute; inset:0; }
+  .vplayer-mount{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .vplayer-mount iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block; pointer-events:none; }
+
+  .vplayer-hit{ position:absolute; inset:0; display:flex; z-index:2; cursor:pointer; }
+  .vplayer-hit-zone{ flex:1; height:100%; }
+
+  .vplayer-seekflash{ position:absolute; top:50%; width:84px; height:84px; margin-top:-42px; border-radius:50%; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:13px; opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:3; }
+  .vplayer-seekflash svg{ width:20px; height:20px; }
+  .vplayer-seekflash.left{ left:10%; }
+  .vplayer-seekflash.right{ right:10%; }
+  .vplayer-seekflash.show{ opacity:1; }
+
+  .vplayer-center-btn{ position:absolute; top:50%; left:50%; width:64px; height:64px; margin:-32px 0 0 -32px; border-radius:50%; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; color:#fff; opacity:0; pointer-events:none; transition:opacity .16s ease, transform .16s ease; z-index:3; }
+  .vplayer-center-btn svg{ width:26px; height:26px; }
+  .vplayer-center-btn.show{ opacity:1; }
+  .vplayer-center-btn.pulse{ opacity:1; animation:centerPulse .55s ease forwards; }
+  @keyframes centerPulse{ 0%{ opacity:1; transform:scale(1); } 100%{ opacity:0; transform:scale(1.35); } }
+
+  .vplayer-loading{ position:absolute; top:50%; left:50%; width:34px; height:34px; margin:-17px 0 0 -17px; border-radius:50%; border:2.5px solid rgba(255,255,255,.25); border-top-color:#fff; opacity:0; pointer-events:none; animation:vspin .8s linear infinite; z-index:3; transition:opacity .15s ease; }
+  .vplayer-loading.show{ opacity:1; }
+  @keyframes vspin{ to{ transform:rotate(360deg); } }
+
+  .vplayer-controls{ position:absolute; left:0; right:0; bottom:0; z-index:4; padding:22px 14px 10px; background:linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,.35) 55%, transparent 100%); opacity:0; transform:translateY(6px); pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
+  .vplayer-controls.show{ opacity:1; transform:translateY(0); pointer-events:auto; }
+  .vplayer.paused .vplayer-controls{ opacity:1; transform:translateY(0); pointer-events:auto; }
+
+  .vprogress-row{ padding:0 2px 8px; }
+  .vprogress{ position:relative; height:14px; display:flex; align-items:center; cursor:pointer; }
+  .vprogress-track{ position:absolute; left:0; right:0; height:3px; border-radius:2px; background:rgba(255,255,255,.28); transition:height .1s ease; }
+  .vprogress:hover .vprogress-track, .vprogress.dragging .vprogress-track{ height:5px; }
+  .vprogress-buffered{ position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:2px; background:rgba(255,255,255,.4); }
+  .vprogress-played{ position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:2px; background:#fff; }
+  .vprogress-handle{ position:absolute; top:50%; width:12px; height:12px; margin-top:-6px; margin-left:-6px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.4); left:0%; transform:scale(0); transition:transform .12s ease; }
+  .vprogress:hover .vprogress-handle, .vprogress.dragging .vprogress-handle{ transform:scale(1); }
+
+  .vcontrols-row{ display:flex; align-items:center; justify-content:space-between; gap:6px; }
+  .vcontrols-left, .vcontrols-right{ display:flex; align-items:center; gap:2px; min-width:0; }
+
+  .vctl-btn{ width:36px; height:36px; border-radius:8px; border:none; background:transparent; color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:background .12s ease, opacity .12s ease; }
+  .vctl-btn:hover{ background:rgba(255,255,255,.14); }
+  .vctl-btn:active{ transform:scale(0.94); }
+  .vctl-btn svg{ width:19px; height:19px; }
+
+  .vvolume-wrap{ display:flex; align-items:center; }
+  .vvolume-slider{ width:0; opacity:0; -webkit-appearance:none; appearance:none; height:3px; border-radius:2px; background:rgba(255,255,255,.3); outline:none; cursor:pointer; transition:width .16s ease, opacity .16s ease, margin .16s ease; margin-left:0; }
+  .vvolume-wrap:hover .vvolume-slider, .vvolume-wrap.active .vvolume-slider{ width:64px; opacity:1; margin-left:4px; }
+  .vvolume-slider::-webkit-slider-thumb{ -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:#fff; cursor:pointer; }
+  .vvolume-slider::-moz-range-thumb{ width:11px; height:11px; border-radius:50%; background:#fff; border:none; cursor:pointer; }
+  .vvolume-slider::-webkit-slider-runnable-track{ height:3px; border-radius:2px; background:rgba(255,255,255,.3); }
+
+  .vtime{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:#fff; opacity:.92; white-space:nowrap; padding:0 4px 0 6px; letter-spacing:-0.01em; }
+
+  .vspeed-wrap{ position:relative; }
+  .vspeed-btn{ width:auto; padding:0 9px; font-family:'IBM Plex Mono', monospace; font-size:12px; font-weight:500; }
+  .vspeed-menu{ position:absolute; bottom:calc(100% + 8px); right:0; background:rgba(24,24,24,.95); backdrop-filter:blur(10px); border-radius:12px; padding:6px; display:flex; flex-direction:column; gap:1px; min-width:72px; opacity:0; transform:translateY(4px) scale(.97); pointer-events:none; transition:opacity .14s ease, transform .14s ease; box-shadow:0 12px 30px rgba(0,0,0,.35); }
+  .vspeed-menu.open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .vspeed-item{ font-family:'IBM Plex Mono', monospace; font-size:12px; color:#fff; background:none; border:none; padding:7px 10px; border-radius:7px; text-align:left; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+  .vspeed-item:hover{ background:rgba(255,255,255,.12); }
+  .vspeed-item.active{ color:#fff; font-weight:600; }
+  .vspeed-item.active::after{ content:""; width:5px; height:5px; border-radius:50%; background:#fff; }
+
+  /* -------- custom fullscreen -------- */
+  .vplayer-fs-close{ display:none; position:fixed; top:18px; right:18px; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.5); backdrop-filter:blur(8px); color:#fff; align-items:center; justify-content:center; cursor:pointer; z-index:10001; border:1px solid rgba(255,255,255,.14); transition:background .12s ease, transform .12s ease; }
+  .vplayer-fs-close:hover{ background:rgba(0,0,0,.7); }
+  .vplayer-fs-close:active{ transform:scale(0.92); }
+  .vplayer-fs-close svg{ width:18px; height:18px; }
+
+  body.vfs-lock{ overflow:hidden; height:100vh; }
+
+  .vplayer.is-fullscreen{ position:fixed !important; inset:0 !important; width:100vw !important; height:100vh !important; max-width:none; aspect-ratio:unset; border-radius:0; border:0; z-index:9999; background:#000; }
+  .vplayer.is-fullscreen .vplayer-fs-close{ display:flex; }
+  .vplayer.is-fullscreen .vplayer-inner{ position:absolute; inset:0; }
+
+  /* portrait fullscreen -> floating square, transparent surroundings */
+  .vplayer.is-fullscreen.is-portrait{ background:transparent; backdrop-filter:blur(28px) saturate(1.1); -webkit-backdrop-filter:blur(28px) saturate(1.1); }
+  .vplayer.is-fullscreen.is-portrait .vplayer-inner{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:min(92vw, 92vh); height:min(92vw, 92vh);
+    border-radius:18px; overflow:hidden; box-shadow:0 24px 70px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08);
+  }
 
   /* the 404 lives ONLY inside the player box -- nothing else on the page
      changes when a video isn't found. */
@@ -126,6 +209,17 @@
     header{ flex-wrap:wrap; row-gap:12px; }
     .auth{ width:100%; justify-content:flex-end; }
     .watch-wrap{ padding:24px 16px 80px; }
+  }
+
+  /* touch devices: bigger tap targets, volume slider always visible when
+     touched (no hover), controls a bit larger for thumbs */
+  @media (pointer:coarse){
+    .vctl-btn{ width:42px; height:42px; }
+    .vctl-btn svg{ width:21px; height:21px; }
+    .vprogress{ height:22px; }
+    .vprogress-handle{ transform:scale(1); }
+    .vvolume-wrap .vvolume-slider{ display:none; }
+    .vplayer-controls{ padding-bottom:14px; }
   }
 
   .toast-stack{ position:fixed; top:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; max-width:360px; pointer-events:none; }
@@ -262,6 +356,397 @@
   const THUMB_DOWN_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3Zm-5.83 19.12L15 16.24V2H6.5a2 2 0 0 0-1.92 1.44l-2.33 8A2 2 0 0 0 4.17 14H10l-1 4.12a3.13 3.13 0 0 0 3 3.88Z"/></svg>';
   const NO_VIDEO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5l-5 3.5 5 3.5v-7Z"/><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M4 4l16 16"/></svg>';
 
+  // ================= custom YouTube player =================
+  const VPlayer = (function(){
+    const ICON = {
+      play:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.6c0-1 1.08-1.63 1.95-1.14l11.3 6.4c.9.5.9 1.78 0 2.28l-11.3 6.4c-.87.5-1.95-.13-1.95-1.14V5.6Z"/></svg>',
+      pause:  '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.5" height="14" rx="1"/><rect x="13.5" y="5" width="4.5" height="14" rx="1"/></svg>',
+      volHigh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4Z"/><path d="M17.5 8.5a5 5 0 0 1 0 7"/><path d="M20.3 6a9 9 0 0 1 0 12"/></svg>',
+      volLow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4Z"/><path d="M17.5 9.5a3.5 3.5 0 0 1 0 5"/></svg>',
+      volMute:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 5V4L8 9H4Z"/><path d="m17 9 5 6M22 9l-5 6"/></svg>',
+      fsOpen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>',
+      fsClose:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v4a2 2 0 0 1-2 2H3M15 3v4a2 2 0 0 0 2 2h4M21 15h-4a2 2 0 0 0-2 2v4M3 15h4a2 2 0 0 1 2 2v4"/></svg>',
+      xClose: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+      seekFwd:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4h4"/></svg>',
+      seekBack:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform:scaleX(-1)"><path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4v4h4"/></svg>'
+    };
+    const RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+
+    let ytApiPromise = null;
+    function loadYouTubeAPI(){
+      if (ytApiPromise) return ytApiPromise;
+      ytApiPromise = new Promise(function(resolve){
+        if (window.YT && window.YT.Player) { resolve(); return; }
+        const prevReady = window.onYouTubeIframeAPIReady;
+        window.onYouTubeIframeAPIReady = function(){
+          if (typeof prevReady === 'function') prevReady();
+          resolve();
+        };
+        if (!document.getElementById('ytIframeApiScript')) {
+          const tag = document.createElement('script');
+          tag.id = 'ytIframeApiScript';
+          tag.src = 'https://www.youtube.com/iframe_api';
+          document.head.appendChild(tag);
+        }
+      });
+      return ytApiPromise;
+    }
+
+    function fmtTime(sec){
+      sec = Math.max(0, Math.floor(sec || 0));
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      const mm = h ? String(m).padStart(2, '0') : String(m);
+      const ss = String(s).padStart(2, '0');
+      return h ? (h + ':' + mm + ':' + ss) : (mm + ':' + ss);
+    }
+
+    function init(rootEl, videoId, title){
+      rootEl.innerHTML =
+        '<div class="vplayer-inner" id="vpInner">' +
+          '<div class="vplayer-mount" id="vpMount"></div>' +
+          '<div class="vplayer-hit" id="vpHit">' +
+            '<div class="vplayer-hit-zone" data-zone="left"></div>' +
+            '<div class="vplayer-hit-zone" data-zone="mid"></div>' +
+            '<div class="vplayer-hit-zone" data-zone="right"></div>' +
+          '</div>' +
+          '<div class="vplayer-seekflash left" id="vpFlashLeft">' + ICON.seekBack + '<span id="vpFlashLeftLabel">10</span></div>' +
+          '<div class="vplayer-seekflash right" id="vpFlashRight">' + ICON.seekFwd + '<span id="vpFlashRightLabel">10</span></div>' +
+          '<div class="vplayer-center-btn" id="vpCenterBtn"></div>' +
+          '<div class="vplayer-loading" id="vpLoading"></div>' +
+          '<div class="vplayer-controls" id="vpControls">' +
+            '<div class="vprogress-row">' +
+              '<div class="vprogress" id="vpProgress">' +
+                '<div class="vprogress-track"></div>' +
+                '<div class="vprogress-buffered" id="vpBuffered"></div>' +
+                '<div class="vprogress-played" id="vpPlayed"></div>' +
+                '<div class="vprogress-handle" id="vpHandle"></div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="vcontrols-row">' +
+              '<div class="vcontrols-left">' +
+                '<button class="vctl-btn" id="vpPlayBtn" type="button" aria-label="Play/Pause"></button>' +
+                '<div class="vvolume-wrap" id="vpVolWrap">' +
+                  '<button class="vctl-btn" id="vpMuteBtn" type="button" aria-label="Mute"></button>' +
+                  '<input class="vvolume-slider" id="vpVolSlider" type="range" min="0" max="100" value="100">' +
+                '</div>' +
+                '<span class="vtime" id="vpTime">0:00 / 0:00</span>' +
+              '</div>' +
+              '<div class="vcontrols-right">' +
+                '<div class="vspeed-wrap">' +
+                  '<button class="vctl-btn vspeed-btn" id="vpSpeedBtn" type="button">1x</button>' +
+                  '<div class="vspeed-menu" id="vpSpeedMenu"></div>' +
+                '</div>' +
+                '<button class="vctl-btn" id="vpFsBtn" type="button" aria-label="Fullscreen"></button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="vplayer-fs-close" id="vpFsClose">' + ICON.xClose + '</div>';
+
+      const $ = function(id){ return document.getElementById(id); };
+      const els = {
+        inner: $('vpInner'), mount: $('vpMount'), hit: $('vpHit'),
+        flashLeft: $('vpFlashLeft'), flashRight: $('vpFlashRight'),
+        flashLeftLabel: $('vpFlashLeftLabel'), flashRightLabel: $('vpFlashRightLabel'),
+        centerBtn: $('vpCenterBtn'), loading: $('vpLoading'), controls: $('vpControls'),
+        progress: $('vpProgress'), buffered: $('vpBuffered'), played: $('vpPlayed'), handle: $('vpHandle'),
+        playBtn: $('vpPlayBtn'), volWrap: $('vpVolWrap'), muteBtn: $('vpMuteBtn'), volSlider: $('vpVolSlider'),
+        time: $('vpTime'), speedBtn: $('vpSpeedBtn'), speedMenu: $('vpSpeedMenu'), fsBtn: $('vpFsBtn'), fsClose: $('vpFsClose')
+      };
+
+      els.playBtn.innerHTML = ICON.play;
+      els.muteBtn.innerHTML = ICON.volHigh;
+      els.fsBtn.innerHTML = ICON.fsOpen;
+      els.centerBtn.innerHTML = ICON.play;
+      RATES.forEach(function(r){
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'vspeed-item' + (r === 1 ? ' active' : '');
+        btn.textContent = r + 'x';
+        btn.setAttribute('data-rate', r);
+        els.speedMenu.appendChild(btn);
+      });
+
+      let yt = null;
+      let duration = 0;
+      let lastVolume = 100;
+      let hideTimer = null;
+      let progressTimer = null;
+      let draggingProgress = false;
+      let isFullscreen = false;
+
+      function showControls(persist){
+        els.controls.classList.add('show');
+        rootEl.classList.remove('controls-hidden');
+        clearTimeout(hideTimer);
+        if (!persist) scheduleHide();
+      }
+      function scheduleHide(){
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(function(){
+          if (!yt || rootEl.classList.contains('paused')) return;
+          els.speedMenu.classList.remove('open');
+          els.controls.classList.remove('show');
+        }, 2200);
+      }
+      function setPaused(paused){
+        rootEl.classList.toggle('paused', paused);
+        els.playBtn.innerHTML = paused ? ICON.play : ICON.pause;
+        if (paused) showControls(true); else scheduleHide();
+      }
+
+      function updateProgressUI(){
+        if (!yt || draggingProgress) return;
+        const cur = yt.getCurrentTime ? yt.getCurrentTime() : 0;
+        duration = (yt.getDuration ? yt.getDuration() : 0) || duration;
+        const buf = yt.getVideoLoadedFraction ? yt.getVideoLoadedFraction() : 0;
+        const pct = duration ? Math.min(100, (cur / duration) * 100) : 0;
+        els.played.style.width = pct + '%';
+        els.handle.style.left = pct + '%';
+        els.buffered.style.width = (buf * 100) + '%';
+        els.time.textContent = fmtTime(cur) + ' / ' + fmtTime(duration);
+      }
+      function startProgressLoop(){
+        clearInterval(progressTimer);
+        progressTimer = setInterval(updateProgressUI, 250);
+      }
+
+      function flashSeek(dir, secs){
+        const el = dir === 'left' ? els.flashLeft : els.flashRight;
+        const label = dir === 'left' ? els.flashLeftLabel : els.flashRightLabel;
+        label.textContent = secs;
+        el.classList.add('show');
+        clearTimeout(el._t);
+        el._t = setTimeout(function(){ el.classList.remove('show'); }, 480);
+      }
+      function pulseCenter(icon){
+        els.centerBtn.innerHTML = icon;
+        els.centerBtn.classList.remove('pulse');
+        void els.centerBtn.offsetWidth;
+        els.centerBtn.classList.add('pulse');
+      }
+
+      function seekBy(delta){
+        if (!yt) return;
+        const cur = yt.getCurrentTime();
+        yt.seekTo(Math.max(0, Math.min(duration, cur + delta)), true);
+        showControls();
+      }
+      function togglePlay(){
+        if (!yt) return;
+        const st = yt.getPlayerState();
+        if (st === 1 || st === 3) { yt.pauseVideo(); pulseCenter(ICON.pause); }
+        else { yt.playVideo(); pulseCenter(ICON.play); }
+      }
+      function updateVolIcon(){
+        const muted = yt.isMuted();
+        const vol = yt.getVolume();
+        els.muteBtn.innerHTML = muted || vol === 0 ? ICON.volMute : (vol < 45 ? ICON.volLow : ICON.volHigh);
+        els.volSlider.value = muted ? 0 : vol;
+      }
+      function setSpeed(rate){
+        yt.setPlaybackRate(rate);
+        els.speedBtn.textContent = rate + 'x';
+        els.speedMenu.querySelectorAll('.vspeed-item').forEach(function(b){
+          b.classList.toggle('active', parseFloat(b.getAttribute('data-rate')) === rate);
+        });
+      }
+
+      // ---- orientation-aware custom fullscreen ----
+      function applyOrientationClass(){
+        const portrait = window.matchMedia('(orientation: portrait)').matches;
+        rootEl.classList.toggle('is-portrait', portrait);
+      }
+      function enterFullscreen(){
+        isFullscreen = true;
+        rootEl.classList.add('is-fullscreen');
+        document.body.classList.add('vfs-lock');
+        applyOrientationClass();
+        window.addEventListener('resize', applyOrientationClass);
+        window.addEventListener('orientationchange', applyOrientationClass);
+        els.fsBtn.innerHTML = ICON.fsClose;
+        showControls();
+      }
+      function exitFullscreen(){
+        isFullscreen = false;
+        rootEl.classList.remove('is-fullscreen', 'is-portrait');
+        document.body.classList.remove('vfs-lock');
+        window.removeEventListener('resize', applyOrientationClass);
+        window.removeEventListener('orientationchange', applyOrientationClass);
+        els.fsBtn.innerHTML = ICON.fsOpen;
+      }
+      function toggleFullscreen(){ isFullscreen ? exitFullscreen() : enterFullscreen(); }
+
+      // ---- progress bar scrub (mouse + touch via Pointer Events) ----
+      function pctFromEvent(e){
+        const rect = els.progress.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        return Math.max(0, Math.min(1, x / rect.width));
+      }
+      els.progress.addEventListener('pointerdown', function(e){
+        draggingProgress = true;
+        els.progress.classList.add('dragging');
+        showControls(true);
+        const p = pctFromEvent(e);
+        els.played.style.width = (p * 100) + '%';
+        els.handle.style.left = (p * 100) + '%';
+        els.progress.setPointerCapture(e.pointerId);
+      });
+      els.progress.addEventListener('pointermove', function(e){
+        if (!draggingProgress) return;
+        const p = pctFromEvent(e);
+        els.played.style.width = (p * 100) + '%';
+        els.handle.style.left = (p * 100) + '%';
+        els.time.textContent = fmtTime(p * duration) + ' / ' + fmtTime(duration);
+      });
+      function endDrag(e){
+        if (!draggingProgress) return;
+        draggingProgress = false;
+        els.progress.classList.remove('dragging');
+        const p = pctFromEvent(e);
+        yt.seekTo(p * duration, true);
+        scheduleHide();
+      }
+      els.progress.addEventListener('pointerup', endDrag);
+      els.progress.addEventListener('pointercancel', endDrag);
+
+      // ---- volume slider ----
+      els.volSlider.addEventListener('input', function(){
+        const v = parseInt(els.volSlider.value, 10);
+        if (v === 0) { yt.mute(); } else { if (yt.isMuted()) yt.unmute(); yt.setVolume(v); lastVolume = v; }
+        updateVolIcon();
+      });
+      els.muteBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (yt.isMuted() || yt.getVolume() === 0) { yt.unmute(); yt.setVolume(lastVolume || 100); }
+        else { lastVolume = yt.getVolume(); yt.mute(); }
+        updateVolIcon();
+        showControls();
+      });
+
+      // ---- play / speed / fullscreen / close buttons ----
+      els.playBtn.addEventListener('click', function(e){ e.stopPropagation(); togglePlay(); });
+      els.speedBtn.addEventListener('click', function(e){ e.stopPropagation(); els.speedMenu.classList.toggle('open'); showControls(true); });
+      els.speedMenu.addEventListener('click', function(e){
+        const item = e.target.closest('.vspeed-item');
+        if (!item) return;
+        setSpeed(parseFloat(item.getAttribute('data-rate')));
+        els.speedMenu.classList.remove('open');
+      });
+      els.fsBtn.addEventListener('click', function(e){ e.stopPropagation(); toggleFullscreen(); });
+      els.fsClose.addEventListener('click', function(e){ e.stopPropagation(); exitFullscreen(); });
+      document.addEventListener('click', function(e){
+        if (!e.target.closest('.vspeed-wrap')) els.speedMenu.classList.remove('open');
+      });
+
+      // ---- tap / click zones: single tap toggles controls, double tap seeks (sides) or play/pause (middle) ----
+      let tapTimers = {};
+      function onZoneActivate(zone, isDouble){
+        if (zone === 'mid') {
+          if (isDouble) togglePlay(); else { rootEl.classList.contains('paused') || els.controls.classList.contains('show') ? hideControlsNow() : showControls(); }
+        } else if (zone === 'left') {
+          if (isDouble) { seekBy(-10); flashSeek('left', 10); } else { toggleControlsVisible(); }
+        } else if (zone === 'right') {
+          if (isDouble) { seekBy(10); flashSeek('right', 10); } else { toggleControlsVisible(); }
+        }
+      }
+      function toggleControlsVisible(){
+        if (els.controls.classList.contains('show')) hideControlsNow();
+        else showControls();
+      }
+      function hideControlsNow(){
+        if (rootEl.classList.contains('paused')) return;
+        els.speedMenu.classList.remove('open');
+        els.controls.classList.remove('show');
+        clearTimeout(hideTimer);
+      }
+      els.hit.querySelectorAll('.vplayer-hit-zone').forEach(function(zoneEl){
+        const zone = zoneEl.getAttribute('data-zone');
+        zoneEl.addEventListener('click', function(){
+          if (tapTimers[zone]) {
+            clearTimeout(tapTimers[zone]);
+            tapTimers[zone] = null;
+            onZoneActivate(zone, true);
+          } else {
+            tapTimers[zone] = setTimeout(function(){
+              tapTimers[zone] = null;
+              onZoneActivate(zone, false);
+            }, 260);
+          }
+        });
+      });
+
+      // desktop: show controls on mouse movement, hide shortly after leaving
+      rootEl.addEventListener('mousemove', function(){ showControls(); });
+      rootEl.addEventListener('mouseleave', function(){ if (!rootEl.classList.contains('paused')) hideControlsNow(); });
+
+      // ---- keyboard shortcuts: bound to document so they work immediately,
+      // no need to click the video first (iframe has pointer-events:none so
+      // it can never steal focus in the first place) ----
+      function isTypingTarget(){
+        const a = document.activeElement;
+        if (!a) return false;
+        const tag = a.tagName;
+        return tag === 'INPUT' || tag === 'TEXTAREA' || a.isContentEditable;
+      }
+      function onKeydown(e){
+        if (!yt || isTypingTarget()) return;
+        if (!document.body.contains(rootEl)) return;
+        switch (e.key) {
+          case ' ': case 'k': case 'K': e.preventDefault(); togglePlay(); break;
+          case 'ArrowLeft': e.preventDefault(); seekBy(-5); flashSeek('left', 5); break;
+          case 'ArrowRight': e.preventDefault(); seekBy(5); flashSeek('right', 5); break;
+          case 'j': case 'J': seekBy(-10); flashSeek('left', 10); break;
+          case 'l': case 'L': seekBy(10); flashSeek('right', 10); break;
+          case 'ArrowUp': e.preventDefault(); yt.setVolume(Math.min(100, yt.getVolume() + 5)); if (yt.isMuted()) yt.unmute(); updateVolIcon(); showControls(); break;
+          case 'ArrowDown': e.preventDefault(); yt.setVolume(Math.max(0, yt.getVolume() - 5)); updateVolIcon(); showControls(); break;
+          case 'm': case 'M': els.muteBtn.click(); break;
+          case 'f': case 'F': toggleFullscreen(); break;
+          case 'Escape': if (isFullscreen) exitFullscreen(); break;
+          default:
+            if (e.key >= '0' && e.key <= '9') { yt.seekTo(duration * (parseInt(e.key, 10) / 10), true); }
+        }
+      }
+      document.addEventListener('keydown', onKeydown);
+
+      // ---- build the actual YT player ----
+      const mountId = 'ytmount_' + Math.random().toString(36).slice(2);
+      els.mount.id = mountId;
+      els.loading.classList.add('show');
+
+      loadYouTubeAPI().then(function(){
+        yt = new YT.Player(mountId, {
+          videoId: videoId,
+          playerVars: { autoplay: 1, rel: 0, modestbranding: 1, controls: 0, disablekb: 1, playsinline: 1, iv_load_policy: 3, fs: 0 },
+          events: {
+            onReady: function(){
+              els.loading.classList.remove('show');
+              updateVolIcon();
+              startProgressLoop();
+              setPaused(false);
+            },
+            onStateChange: function(ev){
+              if (ev.data === YT.PlayerState.PLAYING) { setPaused(false); els.loading.classList.remove('show'); }
+              else if (ev.data === YT.PlayerState.PAUSED) { setPaused(true); }
+              else if (ev.data === YT.PlayerState.BUFFERING) { els.loading.classList.add('show'); }
+              else if (ev.data === YT.PlayerState.ENDED) { setPaused(true); }
+              else if (ev.data === YT.PlayerState.CUED) { els.loading.classList.remove('show'); }
+            },
+            onError: function(){
+              window.toast('This video could not be played (it may be restricted or removed on YouTube).', 'Playback error');
+            }
+          }
+        });
+      });
+
+      return { destroy: function(){ document.removeEventListener('keydown', onKeydown); clearInterval(progressTimer); } };
+    }
+
+    return { init: init };
+  })();
+
   const authArea = document.getElementById('authArea');
   PlatformAuth.renderHeader(authArea);
   const session = PlatformAuth.getSession();
@@ -378,9 +863,8 @@
       var user = data.user;
 
       player.classList.remove('sk');
-      player.innerHTML =
-        '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.video_id) + '?autoplay=1&rel=0&modestbranding=1" ' +
-        'title="' + (v.title || '').replace(/"/g, '&quot;') + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+      if (window.__vplayerInstance) window.__vplayerInstance.destroy();
+      window.__vplayerInstance = VPlayer.init(player, v.video_id, v.title || '');
 
       document.title = (v.title || 'Watch') + ' — Platform';
       titleEl.classList.remove('sk');
