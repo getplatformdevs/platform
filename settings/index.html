@@ -144,8 +144,9 @@
   .user-dropdown{
     position:absolute;
     top:calc(100% + 12px);
-    left:0;
+    right:0;
     min-width:190px;
+    max-width:calc(100vw - 32px);
     background:#ffffff;
     border:1px solid var(--line);
     border-radius:18px;
@@ -644,6 +645,30 @@
   <h1 class="settings-title">Settings</h1>
   <p class="settings-sub">Your account is tied to your username and your Flowery Key -- there's no email involved.</p>
 
+  <div class="settings-card" style="margin-bottom:24px;">
+    <div class="settings-row">
+      <div class="row-info" style="display:flex; align-items:center; gap:16px;">
+        <div class="pfp-preview" id="pfpPreview" style="position:relative; width:56px; height:56px; min-width:56px; border-radius:50%; overflow:hidden; border:1px solid var(--line); background:var(--paper-dim);">
+          <img id="pfpPreviewImg" alt="Profile picture" style="width:100%; height:100%; object-fit:cover; display:block;">
+        </div>
+        <div>
+          <div class="row-label">Profile Picture</div>
+          <div class="row-hint">Shown on your public profile and around the site.</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost" id="changePfpBtn">Change Picture</button>
+      <input type="file" id="pfpUploadInput" accept="image/*" style="display:none;">
+    </div>
+    <div class="settings-row" style="align-items:flex-start; flex-direction:column; gap:12px;">
+      <div class="row-info" style="width:100%;">
+        <div class="row-label">Description</div>
+        <div class="row-hint" style="margin-bottom:10px;">The short line shown under your @username on your profile.</div>
+        <textarea id="descriptionInput" maxlength="160" rows="2" placeholder="Hi, I love Flowery!" style="width:100%; font-family:'Inter', sans-serif; font-size:14.5px; padding:12px 14px; border-radius:14px; border:1.5px solid var(--line); background:var(--paper-dim); color:var(--ink); resize:vertical;"></textarea>
+      </div>
+      <button class="btn btn-solid" id="saveDescriptionBtn" style="align-self:flex-end;">Save Description</button>
+    </div>
+  </div>
+
   <div class="settings-card">
     <div class="settings-row">
       <div class="row-info">
@@ -703,6 +728,80 @@
   // has been confirmed, for accounts that still owe us that.
   PlatformAuth.enforceFirstTimeGate();
   PlatformAuth.startAutoSync();
+
+  // ---------- Profile Picture ----------
+
+  const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#f6f6f4"/>
+      <circle cx="50" cy="38" r="18" fill="#b9b9b4"/>
+      <path d="M50 60c-22 0-36 12-36 28v6h72v-6c0-16-14-28-36-28z" fill="#b9b9b4"/>
+    </svg>`
+  );
+
+  const pfpPreviewImg = document.getElementById('pfpPreviewImg');
+  const changePfpBtn = document.getElementById('changePfpBtn');
+  const pfpUploadInput = document.getElementById('pfpUploadInput');
+  const descriptionInput = document.getElementById('descriptionInput');
+  const saveDescriptionBtn = document.getElementById('saveDescriptionBtn');
+
+  pfpPreviewImg.src = session.pfp ? session.pfp : DEFAULT_AVATAR;
+
+  changePfpBtn.addEventListener('click', () => pfpUploadInput.click());
+
+  pfpUploadInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    changePfpBtn.disabled = true;
+    changePfpBtn.textContent = 'Uploading\u2026';
+    try {
+      const base64Data = await PlatformAuth.processImage(file);
+      const res = await PlatformAuth.callFn('update-pfp', { pfp: base64Data });
+
+      const sess = PlatformAuth.getSession();
+      sess.pfp = res.pfp;
+      PlatformAuth.setSession(sess);
+
+      pfpPreviewImg.src = res.pfp || DEFAULT_AVATAR;
+      const headerAvatar = document.querySelector('#avatarBtn img');
+      if (headerAvatar) headerAvatar.src = res.pfp || DEFAULT_AVATAR;
+
+      toast('Profile picture updated.', 'Success', 'ok');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Failed to update profile picture.', 'Error');
+    } finally {
+      changePfpBtn.disabled = false;
+      changePfpBtn.textContent = 'Change Picture';
+      pfpUploadInput.value = '';
+    }
+  });
+
+  // ---------- Description ----------
+  // Not stored in the session, so pull the current value from the same
+  // endpoint the public profile page uses.
+
+  PlatformAuth.getPublicProfile(session.username).then((data) => {
+    descriptionInput.value = (data.user && data.user.description) || '';
+  }).catch(() => { /* leave the placeholder showing */ });
+
+  saveDescriptionBtn.addEventListener('click', async () => {
+    const value = descriptionInput.value.trim();
+    if (!value) { toast('Description can\u2019t be empty.', 'Error'); return; }
+    saveDescriptionBtn.disabled = true;
+    saveDescriptionBtn.textContent = 'Saving\u2026';
+    try {
+      const res = await PlatformAuth.updateDescription(value);
+      descriptionInput.value = res.description;
+      toast('Description updated.', 'Success', 'ok');
+    } catch (err) {
+      console.error(err);
+      toast(err.message || 'Failed to update description.', 'Error');
+    } finally {
+      saveDescriptionBtn.disabled = false;
+      saveDescriptionBtn.textContent = 'Save Description';
+    }
+  });
 
   // ---------- shared modal close/escape plumbing ----------
 

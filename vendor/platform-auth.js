@@ -149,6 +149,14 @@
     return callFn('public-profile', { username: username }, { timeoutMs: 12000 });
   }
 
+  function getVideoByID(videoId) {
+    return callFn('video-lookup', { video_id: videoId }, { timeoutMs: 12000 });
+  }
+
+  function updateDescription(description) {
+    return callFn('update-description', { description: description });
+  }
+
   function toggleFollow(username) {
     return callFn('follow-toggle', { username: username });
   }
@@ -237,21 +245,23 @@
     var style = document.createElement('style');
     style.id = 'pf-header-styles';
     style.textContent =
-      /* "Connect, To Creation" button. The hexagon (clip-path gives a true
-         hexagon rather than faking it with a rotated square) is now just the
-         icon chip on the left; the label sits in an attached pill to its
-         right so the text is always visible, not just on hover.
+      /* "Connect, To Creation" button. Both the icon chip (.hex-icon) AND
+         the button that contains it (.hex-btn) are true hexagons via
+         clip-path, using a fixed pixel taper on the left/right points so
+         the two hexagons read as the same shape at any width -- the icon's
+         hexagon just sits inside the larger one.
 
-         Important: the clip-path lives on .hex-icon only, NOT on .hex-btn
-         itself. Previously it was on .hex-btn, which meant the .hex-dot
-         (green "connected" indicator) -- a child of that same clipped
-         element -- got sliced by the hexagon's corner cut and only ever
-         showed a sliver. Keeping .hex-dot outside the clipped icon (as a
-         sibling positioned against the pill) means it now renders as a
-         full circle overlaying the button instead of getting cut away. */
+         Important: the clip-paths live on .hex-icon and .hex-btn, NOT on
+         .hex-btn-wrap. .hex-dot (the green "connected" indicator) is a
+         sibling of .hex-btn inside .hex-btn-wrap, positioned absolutely
+         against the wrap -- not a descendant of either clipped element --
+         so it renders as a full circle instead of getting sliced by a
+         hexagon corner cut. */
+      '.hex-btn-wrap{position:relative;display:flex;align-items:center;flex-shrink:0;}' +
       '.hex-btn{position:relative;display:flex;align-items:center;height:38px;flex-shrink:0;' +
-      'background:#0a0a0a;color:#fff;text-decoration:none;border-radius:0 999px 999px 0;' +
-      'overflow:hidden;cursor:pointer;transition:transform .15s ease, background .15s ease;}' +
+      'background:#0a0a0a;color:#fff;text-decoration:none;' +
+      'cursor:pointer;transition:transform .15s ease, background .15s ease;' +
+      'clip-path:polygon(10px 2px, calc(100% - 10px) 2px, 100% 50%, calc(100% - 10px) 36px, 10px 36px, 0 50%);}' +
       '.hex-btn:hover{background:#222;transform:translateY(-1px);}' +
       '.hex-btn:active{transform:translateY(0) scale(0.97);}' +
       '.hex-icon{position:relative;width:38px;height:38px;flex-shrink:0;display:flex;' +
@@ -259,15 +269,15 @@
       'clip-path:polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0% 50%);}' +
       '.hex-icon svg{width:16px;height:16px;}' +
       '.hex-label{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:.02em;' +
-      'white-space:nowrap;padding:0 16px 0 2px;}' +
-      '.hex-btn .hex-dot{position:absolute;top:1px;left:26px;width:8px;height:8px;' +
+      'white-space:nowrap;padding:0 22px 0 4px;}' +
+      '.hex-btn-wrap .hex-dot{position:absolute;top:1px;left:26px;width:8px;height:8px;' +
       'border-radius:50%;background:#3ecf6e;border:1.5px solid #0a0a0a;display:none;z-index:2;}' +
-      '.hex-btn.is-connected .hex-dot{display:block;}' +
+      '.hex-btn-wrap.is-connected .hex-dot{display:block;}' +
       '.dropdown-sep{height:1px;background:var(--line,#e4e4e0);margin:6px 4px;}' +
       '.dropdown-item.danger{color:#b3261e;}' +
       '.dropdown-item.danger svg{color:#b3261e;}' +
       '.dropdown-item.is-loading{opacity:.55;pointer-events:none;}' +
-      '@media (max-width:640px){.hex-label{display:none;}.hex-btn{border-radius:50%;width:38px;}}';
+      '@media (max-width:640px){.hex-label{display:none;}.hex-btn{width:38px;}}';
     document.head.appendChild(style);
   }
 
@@ -286,11 +296,13 @@
     // Order matters here: the hexagon sits to the LEFT of the avatar/dropdown,
     // which is what pushes the user's avatar + its dropdown further right.
     authAreaEl.innerHTML =
-      '<a class="hex-btn" id="connectHexBtn" href="/connect" aria-label="Connect, To Creation">' +
+      '<span class="hex-btn-wrap" id="connectHexBtn">' +
+      '<a class="hex-btn" href="/connect" aria-label="Connect, To Creation">' +
       '<span class="hex-icon">' + HEX_SVG + '</span>' +
-      '<span class="hex-dot"></span>' +
       '<span class="hex-label">Connect, To Creation</span>' +
       '</a>' +
+      '<span class="hex-dot"></span>' +
+      '</span>' +
       '<div class="user-menu" id="userMenu">' +
       '<button class="avatar-btn" id="avatarBtn" aria-haspopup="true" aria-expanded="false" title="@' + session.username + '">' +
       '<img src="' + avatarSrc + '" alt=""></button>' +
@@ -629,6 +641,8 @@
     disconnectCreator: disconnectCreator,
     startAutoSync: startAutoSync,
     getPublicProfile: getPublicProfile,
+    getVideoByID: getVideoByID,
+    updateDescription: updateDescription,
     toggleFollow: toggleFollow,
     toggleVideoReaction: toggleVideoReaction
   };

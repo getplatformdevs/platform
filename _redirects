@@ -1,5 +1,21 @@
-# Public profile pages: https://getplatform.pages.dev/@clover
-# This is a 200 rewrite (not a redirect) -- the browser's address bar keeps
-# showing /@username, but Cloudflare Pages actually serves /u/index.html,
-# which reads the username back out of window.location.pathname.
-/@*    /u/index.html   200
+# Public profile pages: https://getplatform.pages.dev/profile/@clover
+# One simple 200 rewrite. Any /profile/@something path is served by the same
+# profile/index.html that already exists for your OWN profile page -- the
+# page itself checks the URL to tell the two cases apart (see profile/index.html).
+#
+# Two things that broke this before, now avoided on purpose:
+#   1. Cloudflare Pages only understands the "*" wildcard + ":splat" -- it
+#      does NOT support Netlify-style named placeholders like ":username".
+#   2. The destination is the FOLDER "/profile/", not "/profile/index.html".
+#      Naming index.html explicitly triggers Cloudflare's automatic
+#      "clean URLs" redirect, which strips query strings and undoes the rewrite.
+/profile/@*    /profile/?u=:splat   200
+
+# In-page video watch: https://getplatform.pages.dev/watch/dQw4w9WgXcQ
+# Same trick as above, scoped to /watch/ this time (not the whole site --
+# a bare "/*" catch-all would swallow every 404/typo into the homepage,
+# which we don't want). watch/index.html checks ?v= for the id and calls
+# the video-lookup edge function; if it's not a real Platform video it
+# shows a 404 in place of just the player, everything else on the page
+# stays put.
+/watch/*    /watch/?v=:splat   200

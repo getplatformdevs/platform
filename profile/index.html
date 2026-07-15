@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your Profile — Platform</title>
+<title>Profile — Platform</title>
 <link rel="icon" type="image/png" href="/justlogo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -55,7 +55,7 @@
   .avatar-btn:hover{ border-color:var(--ink); box-shadow:0 1px 0 var(--ink); }
   .avatar-btn:active{ transform:translateY(1px) scale(0.96); }
   .avatar-btn img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .user-dropdown{ position:absolute; top:calc(100% + 12px); left:0; min-width:190px; background:#ffffff; border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04); padding:8px; opacity:0; transform:translateY(-6px) scale(0.97); pointer-events:none; transition:opacity .16s ease, transform .16s ease; z-index:50; }
+  .user-dropdown{ position:absolute; top:calc(100% + 12px); right:0; min-width:190px; max-width:calc(100vw - 32px); background:#ffffff; border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04); padding:8px; opacity:0; transform:translateY(-6px) scale(0.97); pointer-events:none; transition:opacity .16s ease, transform .16s ease; z-index:50; }
   .user-dropdown.open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
   .dropdown-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font-size:14px; font-weight:500; color:var(--ink); text-decoration:none; transition:background .12s ease; border:none; background:none; width:100%; cursor:pointer; text-align:left; }
   .dropdown-item:hover{ background:var(--paper-dim); }
@@ -64,37 +64,79 @@
   .profile-wrap{ max-width:900px; margin:0 auto; padding:64px 32px 100px; }
   .profile-header{ display:flex; align-items:center; gap:32px; }
 
-  .avatar-upload{ position:relative; width:176px; height:176px; min-width:176px; border-radius:50%; overflow:hidden; cursor:pointer; border:1px solid var(--line); background:var(--paper-dim); flex-shrink:0; transition:box-shadow .15s ease; }
-  .avatar-upload:hover, .avatar-upload:focus-visible{ box-shadow:0 0 0 4px var(--paper-dim), 0 0 0 5px var(--line); }
-  .avatar-upload img{ width:100%; height:100%; object-fit:cover; display:block; }
-  
-  .avatar-overlay{ position:absolute; inset:0; background:rgba(10,10,10,0.55); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .18s ease; pointer-events:none; }
-  .avatar-upload:hover .avatar-overlay, .avatar-upload:focus-visible .avatar-overlay{ opacity:1; }
-  .avatar-overlay svg{ width:38px; height:38px; color:#ffffff; }
-  .avatar-upload.is-saving .avatar-overlay{ opacity:1; background:rgba(10,10,10,0.68); }
-
-  .avatar-spinner{ width:26px; height:26px; border-radius:50%; border:2.5px solid rgba(255,255,255,0.35); border-top-color:#ffffff; animation:spin .7s linear infinite; display:none; }
-  .avatar-upload.is-saving .avatar-spinner{ display:block; }
-  .avatar-upload.is-saving .avatar-icon{ display:none; }
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-
-  .avatar-upload.is-loading::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent); animation:shimmer 2.2s infinite; }
+  .avatar-view{ position:relative; width:176px; height:176px; min-width:176px; border-radius:50%; overflow:hidden; border:1px solid var(--line); background:var(--paper-dim); flex-shrink:0; }
+  .avatar-view img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .avatar-view.is-loading::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.85), transparent); animation:shimmer 2.2s infinite; }
   @keyframes shimmer{ 100%{ transform:translateX(100%); } }
 
-  .identity{ display:flex; flex-direction:column; gap:10px; min-width:0; }
-  .handle-row{ display:flex; align-items:center; gap:10px; }
+  .identity{ display:flex; flex-direction:column; gap:10px; min-width:0; flex:1; }
+  .handle-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
   .handle{ font-family:'Segoe UI', 'Segoe UI Variable', -apple-system, Roboto, ui-sans-serif, sans-serif; font-weight:800; font-size:34px; line-height:1.1; color:#000000; letter-spacing:-0.01em; max-width:420px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .handle.is-loading{ width:180px; height:28px; border-radius:7px; background:var(--paper-dim); position:relative; overflow:hidden; }
   .handle.is-loading::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent); animation:shimmer 2.2s infinite; }
   .member-since{ font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--mid); }
-  .profile-note{ font-size:13px; color:var(--mid); line-height:1.5; margin-top:14px; max-width:420px; }
-  .profile-note a{ color:var(--ink); text-decoration:underline; }
+  .follow-counts{ font-size:13.5px; color:var(--mid); display:flex; gap:16px; }
+  .follow-counts b{ color:var(--ink); font-weight:600; }
+  .profile-desc{ font-size:14.5px; color:var(--mid); line-height:1.5; margin-top:6px; max-width:480px; }
+  .profile-desc.is-loading{ width:260px; height:14px; border-radius:5px; background:var(--paper-dim); }
 
   @media (max-width:640px){
     .profile-header{ flex-direction:column; align-items:flex-start; gap:20px; }
-    .avatar-upload{ width:140px; height:140px; min-width:140px; }
+    .avatar-view{ width:140px; height:140px; min-width:140px; }
     .handle{ font-size:26px; max-width:80vw; }
   }
+
+  .profile-actions{ margin-top:22px; }
+
+  .videos-section{ margin-top:56px; }
+  .videos-title{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:18px; margin-bottom:20px; }
+  .videos-empty{ color:var(--mid); font-size:14px; padding:24px 0; }
+
+  .grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:24px 20px; }
+  @media (max-width:820px){ .grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .grid{ grid-template-columns:1fr; } }
+
+  .vcard{ display:flex; flex-direction:column; gap:12px; }
+
+  .vplayer{ position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--line); }
+  .vplayer iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
+  .vplayer-thumb{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; cursor:pointer; }
+  .vplayer-thumb-btn{ position:absolute; inset:0; width:100%; height:100%; border:none; padding:0; cursor:pointer; background:none; }
+  .vplay-badge{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%; background:rgba(0,0,0,0.72); display:flex; align-items:center; justify-content:center; transition:transform .18s ease, background .18s ease; pointer-events:none; }
+  .vplayer-thumb-btn:hover .vplay-badge{ transform:translate(-50%,-50%) scale(1.08); background:rgba(0,0,0,0.85); }
+  .vplay-badge svg{ width:20px; height:20px; color:#fff; margin-left:3px; }
+
+  .vinfo{ display:flex; flex-direction:column; gap:10px; }
+  .vtitle{ font-size:14.5px; font-weight:600; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-decoration:none; color:inherit; }
+  .vtitle:hover{ color:var(--mid); }
+
+  .vaction-bar{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+
+  .vchannel{ display:flex; align-items:center; gap:9px; min-width:0; }
+  .vchannel-avatar{ width:26px; height:26px; border-radius:50%; object-fit:cover; flex-shrink:0; background:var(--paper-dim); border:1px solid var(--line); }
+  .vchannel-name{ font-size:12.5px; font-weight:500; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; }
+  .vfollow-btn{ font-family:'Inter', sans-serif; font-weight:600; font-size:11.5px; padding:6px 13px; border-radius:999px; cursor:pointer; border:1px solid var(--ink); background:var(--ink); color:#fff; transition:transform .15s ease, background .15s ease, color .15s ease, border-color .15s ease; white-space:nowrap; }
+  .vfollow-btn:active{ transform:scale(0.94); }
+  .vfollow-btn.is-following{ background:var(--paper); color:var(--ink); border-color:var(--line); }
+  .vfollow-btn.is-following:hover{ border-color:#b3261e; color:#b3261e; }
+  .vfollow-btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .vreact-pill{ display:flex; align-items:center; background:var(--paper-dim); border-radius:999px; overflow:hidden; flex-shrink:0; }
+  .vreact-btn{ position:relative; display:flex; align-items:center; gap:6px; font-family:'Inter', sans-serif; font-weight:600; font-size:12px; color:var(--ink); background:none; border:none; padding:8px 13px; cursor:pointer; transition:background .15s ease, color .15s ease; }
+  .vreact-btn:hover{ background:var(--line); }
+  .vreact-btn:first-child{ border-right:1px solid var(--line); }
+  .vreact-btn svg{ width:15px; height:15px; transition:transform .28s cubic-bezier(.34,1.56,.64,1); }
+  .vreact-btn.active{ color:#0a5fd9; }
+  .vreact-btn.active.dislike{ color:#b3261e; }
+  .vreact-btn.pop svg{ animation:vreactPop .32s cubic-bezier(.34,1.56,.64,1); }
+  .vreact-btn .vreact-ring{ position:absolute; left:12px; top:50%; width:15px; height:15px; margin-top:-7.5px; border-radius:50%; pointer-events:none; }
+  .vreact-btn.ring .vreact-ring{ animation:vreactRing .5s ease-out; }
+  .vcount{ min-width:10px; display:inline-block; transition:transform .2s ease; }
+  .vcount.bump{ animation:vcountBump .28s ease; }
+
+  @keyframes vreactPop{ 0%{ transform:scale(1); } 35%{ transform:scale(1.35); } 100%{ transform:scale(1); } }
+  @keyframes vreactRing{ 0%{ box-shadow:0 0 0 0 rgba(10,95,217,0.35); opacity:1; } 100%{ box-shadow:0 0 0 14px rgba(10,95,217,0); opacity:0; } }
+  @keyframes vcountBump{ 0%{ transform:translateY(0); opacity:1; } 40%{ transform:translateY(-6px); opacity:0; } 41%{ transform:translateY(6px); } 100%{ transform:translateY(0); opacity:1; } }
 
   .toast-stack{ position:fixed; top:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; max-width:360px; pointer-events:none; }
   .toast{ background:#ffffff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px; box-shadow:0 20px 50px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.06); pointer-events:auto; animation:toastIn .3s cubic-bezier(.2,.9,.25,1) forwards; }
@@ -178,26 +220,28 @@
 
 <main class="profile-wrap">
   <div class="profile-header">
-    <div class="avatar-upload" id="avatarUpload" aria-hidden="true" title="Upload new profile picture">
+    <div class="avatar-view is-loading" id="avatarView">
       <img id="avatarImg" alt="Profile picture">
-      <div class="avatar-overlay">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="17 8 12 3 7 8"></polyline>
-          <line x1="12" y1="3" x2="12" y2="15"></line>
-        </svg>
-      </div>
-      <div class="avatar-spinner"></div>
     </div>
-    <input type="file" id="pfpUploadInput" accept="image/*" style="display:none;">
 
     <div class="identity">
       <div class="handle-row">
         <span class="handle is-loading" id="handleText"></span>
       </div>
       <span class="member-since" id="memberSince"></span>
-      <p class="profile-note">Username changes are available inside settings page.</p>
+      <div class="follow-counts" id="followCounts" style="display:none;">
+        <span><b id="followersCount">0</b> followers</span>
+        <span><b id="followingCount">0</b> following</span>
+      </div>
+      <p class="profile-desc is-loading" id="profileDesc"></p>
+      <div class="profile-actions" id="profileActions"></div>
     </div>
+  </div>
+
+  <div class="videos-section">
+    <div class="videos-title" id="videosTitle">Videos</div>
+    <div class="grid" id="videosGrid"></div>
+    <div class="videos-empty" id="videosEmpty" style="display:none;">No videos yet.</div>
   </div>
 </main>
 
@@ -213,61 +257,205 @@
     </svg>`
   );
 
+  const THUMB_UP_OUTLINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+  const THUMB_UP_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3Zm5.83-19.12L9 7.76V22h8.5a2 2 0 0 0 1.92-1.44l2.33-8A2 2 0 0 0 19.83 10H14l1-4.12a3.13 3.13 0 0 0-3-3.88Z"/></svg>';
+  const THUMB_DOWN_OUTLINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L13 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+  const THUMB_DOWN_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3Zm-5.83 19.12L15 16.24V2H6.5a2 2 0 0 0-1.92 1.44l-2.33 8A2 2 0 0 0 4.17 14H10l-1 4.12a3.13 3.13 0 0 0 3 3.88Z"/></svg>';
+  const PLAY_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+
   const authArea = document.getElementById('authArea');
+  const avatarView = document.getElementById('avatarView');
   const avatarImg = document.getElementById('avatarImg');
   const handleText = document.getElementById('handleText');
   const memberSince = document.getElementById('memberSince');
-  const avatarUpload = document.getElementById('avatarUpload');
-  const pfpUploadInput = document.getElementById('pfpUploadInput');
+  const followCounts = document.getElementById('followCounts');
+  const followersCount = document.getElementById('followersCount');
+  const followingCount = document.getElementById('followingCount');
+  const profileDesc = document.getElementById('profileDesc');
+  const profileActions = document.getElementById('profileActions');
+  const videosTitle = document.getElementById('videosTitle');
+  const videosGrid = document.getElementById('videosGrid');
+  const videosEmpty = document.getElementById('videosEmpty');
+
+  // ---------- Figure out WHOSE profile this is ----------
+  //
+  // /profile/@clover  -- Cloudflare rewrites this to /profile/?u=clover
+  //                       (see _redirects), so check the query param first.
+  // /profile/@clover  -- also handle a raw, un-rewritten path as a fallback.
+  // /profile/         -- no username anywhere -> show the logged-in user's
+  //                       own profile (redirect to /join if logged out).
+
+  function usernameFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var u = params.get('u');
+    return u ? decodeURIComponent(u) : null;
+  }
+  function usernameFromPath() {
+    var path = window.location.pathname.replace(/\/+$/, '');
+    var match = path.match(/\/(?:@|%40)([^\/]+)/i);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
 
   const session = PlatformAuth.getSession();
-  if (!session) {
+  const routeUsername = usernameFromQuery() || usernameFromPath();
+  const viewingUsername = routeUsername || (session ? session.username : null);
+
+  if (!viewingUsername) {
     window.location.href = '/join';
   }
 
   PlatformAuth.renderHeader(authArea);
-
-  avatarImg.src = session.pfp ? session.pfp : DEFAULT_AVATAR;
-  handleText.classList.remove('is-loading');
-  handleText.textContent = '@' + session.username;
-
-  if (session.created_at) {
-    const d = new Date(session.created_at);
-    memberSince.textContent = 'Member since ' + d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  if (session) {
+    PlatformAuth.enforceFirstTimeGate();
+    PlatformAuth.startAutoSync();
   }
 
-  PlatformAuth.enforceFirstTimeGate();
-  PlatformAuth.startAutoSync();
-
-  avatarUpload.addEventListener('click', () => {
-    pfpUploadInput.click();
-  });
-
-  pfpUploadInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      avatarUpload.classList.add('is-saving');
-      const base64Data = await PlatformAuth.processImage(file);
-      const res = await PlatformAuth.callFn('update-pfp', { pfp: base64Data });
-
-      const sess = PlatformAuth.getSession();
-      sess.pfp = res.pfp;
-      PlatformAuth.setSession(sess);
-
-      avatarImg.src = res.pfp;
-      const headerAvatar = document.querySelector('#avatarBtn img');
-      if (headerAvatar) headerAvatar.src = res.pfp;
-
-      window.toast('Profile picture updated.', 'Success', 'ok');
-    } catch (err) {
-      console.error(err);
-      window.toast(err.message || 'Failed to update profile picture.', 'Error');
-    } finally {
-      avatarUpload.classList.remove('is-saving');
-      pfpUploadInput.value = '';
+  function timeAgo(iso){
+    var d = new Date(iso);
+    var diff = Math.max(0, (Date.now() - d.getTime()) / 1000);
+    var units = [['year',31536000],['month',2592000],['week',604800],['day',86400],['hour',3600],['minute',60]];
+    for (var i = 0; i < units.length; i++){
+      var amount = Math.floor(diff / units[i][1]);
+      if (amount >= 1) return amount + ' ' + units[i][0] + (amount > 1 ? 's' : '') + ' ago';
     }
+    return 'just now';
+  }
+
+  // ---------- Follow button, shared across the page ----------
+  // Every card on this page belongs to the same creator, so one toggle
+  // updates the top-of-page button AND every per-video button together.
+
+  const followState = { following: false };
+  const followButtons = [];
+
+  function makeFollowBtn(username, compact){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = compact ? 'vfollow-btn' : 'btn';
+    function paint(){
+      btn.classList.toggle('is-following', followState.following);
+      if (!compact) btn.classList.toggle('btn-solid', !followState.following);
+      if (!compact) btn.classList.toggle('btn-ghost', followState.following);
+      btn.textContent = followState.following ? 'Following' : 'Follow';
+    }
+    btn._paint = paint;
+    paint();
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      followButtons.forEach(function(b){ b.disabled = true; });
+      PlatformAuth.toggleFollow(username)
+        .then(function(res){
+          followState.following = !!res.following;
+          if (res.followers_count !== null && res.followers_count !== undefined) {
+            followersCount.textContent = res.followers_count;
+          }
+          followButtons.forEach(function(b){ b._paint(); });
+        })
+        .catch(function(err){ window.toast(err.message || 'Could not update follow status.', 'Error'); })
+        .finally(function(){ followButtons.forEach(function(b){ b.disabled = false; }); });
+    });
+    followButtons.push(btn);
+    return btn;
+  }
+
+  // ---------- Video card: thumbnail -> real embed on click, YouTube-style action bar ----------
+
+  function renderVideo(v, user, showFollow, myReaction){
+    var card = document.createElement('div');
+    card.className = 'vcard';
+
+    var watchHref = '/watch/' + encodeURIComponent(v.video_id);
+
+    var player = document.createElement('div');
+    player.className = 'vplayer';
+    player.innerHTML =
+      '<a class="vplayer-thumb-btn" href="' + watchHref + '" aria-label="' + (v.title ? ('Watch ' + (v.title || '').replace(/"/g, '&quot;')) : 'Watch video') + '">' +
+        '<img class="vplayer-thumb" src="' + (v.thumbnail_url || ('https://i.ytimg.com/vi/' + encodeURIComponent(v.video_id) + '/hqdefault.jpg')) + '" alt="" loading="lazy">' +
+        '<span class="vplay-badge">' + PLAY_SVG + '</span>' +
+      '</a>';
+
+    var info = document.createElement('div');
+    info.className = 'vinfo';
+
+    var title = document.createElement('a');
+    title.className = 'vtitle';
+    title.href = watchHref;
+    title.textContent = v.title || '';
+
+    var bar = document.createElement('div');
+    bar.className = 'vaction-bar';
+
+    var channel = document.createElement('div');
+    channel.className = 'vchannel';
+    channel.innerHTML =
+      '<img class="vchannel-avatar" src="' + (user.pfp || DEFAULT_AVATAR) + '" alt="">' +
+      '<span class="vchannel-name">@' + user.username + '</span>';
+    if (showFollow) channel.appendChild(makeFollowBtn(user.username, true));
+
+    bar.appendChild(channel);
+    info.appendChild(title);
+    info.appendChild(bar);
+    card.appendChild(player);
+    card.appendChild(info);
+
+    return card;
+  }
+
+  PlatformAuth.getPublicProfile(viewingUsername).then(function(data){
+    var user = data.user;
+
+    avatarView.classList.remove('is-loading');
+    avatarImg.src = user.pfp ? user.pfp : DEFAULT_AVATAR;
+
+    handleText.classList.remove('is-loading');
+    handleText.textContent = '@' + user.username;
+    document.title = '@' + user.username + ' — Platform';
+
+    if (user.created_at) {
+      var d = new Date(user.created_at);
+      memberSince.textContent = 'Member since ' + d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    }
+
+    followCounts.style.display = 'flex';
+    followersCount.textContent = user.followers_count || 0;
+    followingCount.textContent = user.following_count || 0;
+
+    profileDesc.classList.remove('is-loading');
+    profileDesc.textContent = user.description || 'Hi, I love Flowery!';
+
+    var showFollow = !data.isSelf && !!session;
+    followState.following = !!data.isFollowing;
+
+    if (data.isSelf) {
+      var editLink = document.createElement('a');
+      editLink.href = '/settings';
+      editLink.className = 'btn btn-ghost';
+      editLink.textContent = 'Edit profile';
+      profileActions.innerHTML = '';
+      profileActions.appendChild(editLink);
+    } else if (showFollow) {
+      profileActions.innerHTML = '';
+      profileActions.appendChild(makeFollowBtn(user.username, false));
+    }
+
+    videosTitle.textContent = (data.channel && data.channel.title) ? data.channel.title + ' videos' : 'Videos';
+
+    var videos = data.videos || [];
+    if (!videos.length) {
+      videosEmpty.style.display = 'block';
+    } else {
+      videos.forEach(function(v){
+        videosGrid.appendChild(renderVideo(v, user, showFollow, data.myReactions ? data.myReactions[v.id] : null));
+      });
+    }
+  }).catch(function(err){
+    handleText.classList.remove('is-loading');
+    handleText.textContent = 'Profile not found';
+    profileDesc.classList.remove('is-loading');
+    profileDesc.textContent = '';
+    avatarView.classList.remove('is-loading');
+    avatarImg.src = DEFAULT_AVATAR;
+    window.toast(err.message || 'Could not load this profile.', 'Error');
   });
 </script>
 

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Watch — Platform</title>
+<link rel="icon" type="image/png" href="/justlogo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0a0a0a;
+    --paper:#ffffff;
+    --paper-dim:#f6f6f4;
+    --line:#e4e4e0;
+    --mid:#8c8c88;
+    --soft:#b9b9b4;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ -webkit-font-smoothing:antialiased; max-width:100%; overflow-x:hidden; }
+  body{ background:var(--paper); color:var(--ink); font-family:'Inter', sans-serif; overflow-x:hidden; }
+  a, button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--ink); outline-offset:3px; }
+
+  header{ display:flex; align-items:center; justify-content:space-between; padding:20px 32px; border-bottom:1px solid var(--line); position:relative; z-index:30; }
+  .brand{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+  .brand img{ width:22px; height:22px; object-fit:contain; filter:grayscale(1) contrast(1.15); }
+  .brand span{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:18px; letter-spacing:-0.01em; }
+  .auth{ display:flex; align-items:center; gap:10px; }
+  .btn{ font-family:'Inter', sans-serif; font-weight:500; font-size:14px; padding:9px 18px; border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; white-space:nowrap; border:1px solid transparent; }
+  .btn:active{ transform:translateY(1px) scale(0.98); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; transform:none; }
+  .btn-ghost{ background:var(--paper); color:var(--ink); border:1px solid var(--line); }
+  .btn-ghost:hover:not(:disabled){ border-color:var(--ink); box-shadow:0 1px 0 var(--ink); }
+  .btn-solid{ background:var(--ink); color:var(--paper); border:1px solid var(--ink); }
+  .btn-solid:hover:not(:disabled){ box-shadow:0 4px 14px rgba(0,0,0,0.25); }
+  .auth-skeleton{ width:64px; height:36px; border-radius:999px; background:var(--paper-dim); }
+
+  .user-menu{ position:relative; display:flex; align-items:center; gap:10px; }
+  .avatar-btn{ width:36px; height:36px; border-radius:50%; padding:0; border:1px solid var(--line); background:var(--paper-dim); cursor:pointer; overflow:hidden; flex-shrink:0; transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
+  .avatar-btn:hover{ border-color:var(--ink); box-shadow:0 1px 0 var(--ink); }
+  .avatar-btn:active{ transform:translateY(1px) scale(0.96); }
+  .avatar-btn img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .user-dropdown{ position:absolute; top:calc(100% + 12px); right:0; min-width:190px; max-width:calc(100vw - 32px); background:#ffffff; border:1px solid var(--line); border-radius:18px; box-shadow:0 16px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.04); padding:8px; opacity:0; transform:translateY(-6px) scale(0.97); pointer-events:none; transition:opacity .16s ease, transform .16s ease; z-index:50; }
+  .user-dropdown.open{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
+  .dropdown-item{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; font-size:14px; font-weight:500; color:var(--ink); text-decoration:none; transition:background .12s ease; border:none; background:none; width:100%; cursor:pointer; text-align:left; }
+  .dropdown-item:hover{ background:var(--paper-dim); }
+  .dropdown-item svg{ width:16px; height:16px; color:var(--mid); flex-shrink:0; }
+
+  /* ---------- shared skeleton pieces ---------- */
+  .sk{ background:var(--paper-dim); position:relative; overflow:hidden; }
+  .sk::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent); animation:shimmer 2.2s infinite; }
+  .sk.frozen::after{ animation:none; }
+  @keyframes shimmer{ 100%{ transform:translateX(100%); } }
+
+  /* ---------- watch layout ---------- */
+  .watch-wrap{ max-width:1400px; margin:0 auto; padding:40px 32px 100px; }
+  .watch-grid{ display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:32px; align-items:start; }
+
+  .vplayer{ position:relative; width:100%; aspect-ratio:16/9; border-radius:12px; overflow:hidden; background:#000; border:1px solid var(--line); }
+  .vplayer iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; display:block; }
+  .vplayer.sk{ background:var(--paper-dim); }
+
+  /* the 404 lives ONLY inside the player box -- nothing else on the page
+     changes when a video isn't found. */
+  .vplayer-404{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:var(--paper-dim); text-align:center; padding:24px; }
+  .vplayer-404-icon{ width:44px; height:44px; border-radius:50%; background:var(--paper); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; }
+  .vplayer-404-icon svg{ width:20px; height:20px; color:var(--soft); }
+  .vplayer-404-title{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:15px; color:var(--ink); }
+  .vplayer-404-sub{ font-size:12.5px; color:var(--mid); max-width:280px; line-height:1.5; }
+
+  .vinfo{ display:flex; flex-direction:column; gap:14px; margin-top:16px; min-width:0; }
+  .vtitle-main{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:19px; line-height:1.35; }
+  .vtitle-main.sk{ height:20px; width:70%; border-radius:6px; }
+  .vtitle-main.sk::after{ border-radius:6px; }
+
+  .vaction-bar{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding-bottom:16px; border-bottom:1px solid var(--line); }
+
+  .vchannel{ display:flex; align-items:center; gap:11px; min-width:0; text-decoration:none; color:inherit; }
+  .vchannel-avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; flex-shrink:0; background:var(--paper-dim); border:1px solid var(--line); }
+  .vchannel-avatar.sk{ border:none; }
+  .vchannel-meta{ display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .vchannel-name{ font-size:14.5px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+  .vchannel-handle{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--mid); }
+  .vchannel-line-sk{ height:10px; border-radius:5px; }
+  .vchannel-line-sk.name{ width:120px; }
+  .vchannel-line-sk.handle{ width:76px; height:8px; }
+
+  .vaction-right{ display:flex; align-items:center; gap:10px; }
+
+  .vfollow-btn{ font-family:'Inter', sans-serif; font-weight:500; font-size:14px; padding:9px 18px; border-radius:999px; cursor:pointer; border:1px solid var(--ink); background:var(--ink); color:#fff; transition:transform .15s ease, background .15s ease, color .15s ease, border-color .15s ease; white-space:nowrap; }
+  .vfollow-btn:active{ transform:scale(0.96); }
+  .vfollow-btn.is-following{ background:var(--paper); color:var(--ink); border-color:var(--line); }
+  .vfollow-btn.is-following:hover{ border-color:#b3261e; color:#b3261e; }
+  .vfollow-btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+  .vreact-pill{ display:flex; align-items:center; background:var(--paper-dim); border-radius:999px; overflow:hidden; flex-shrink:0; transition:opacity .15s ease; }
+  .vreact-pill.disabled{ opacity:.45; pointer-events:none; }
+  .vreact-btn{ position:relative; display:flex; align-items:center; gap:6px; font-family:'Inter', sans-serif; font-weight:600; font-size:13px; color:var(--ink); background:none; border:none; padding:10px 16px; cursor:pointer; transition:background .15s ease, color .15s ease; }
+  .vreact-btn:hover:not(:disabled){ background:var(--line); }
+  .vreact-btn:first-child{ border-right:1px solid var(--line); }
+  .vreact-btn svg{ width:16px; height:16px; }
+  .vreact-btn.active{ color:#0a5fd9; }
+  .vreact-btn.active.dislike{ color:#b3261e; }
+  .vreact-btn:disabled{ cursor:not-allowed; }
+
+  /* recommended rail -- skeleton only, YouTube-sidebar style: horizontal
+     thumb + text instead of the homepage's stacked cards. */
+  .watch-side{ display:flex; flex-direction:column; gap:14px; }
+  .side-card-sk{ display:flex; gap:10px; }
+  .side-thumb-sk{ width:168px; min-width:168px; aspect-ratio:16/9; border-radius:8px; }
+  .side-lines-sk{ flex:1; display:flex; flex-direction:column; gap:7px; padding-top:2px; min-width:0; }
+  .side-line-sk{ height:9px; border-radius:5px; }
+  .side-line-sk.w90{ width:92%; }
+  .side-line-sk.w60{ width:58%; }
+  .side-line-sk.w40{ width:42%; }
+
+  @media (max-width:960px){
+    .watch-grid{ grid-template-columns:1fr; }
+    .watch-side{ flex-direction:row; overflow-x:auto; padding-bottom:4px; }
+    .side-card-sk{ flex-direction:column; min-width:200px; }
+    .side-thumb-sk{ width:100%; min-width:0; }
+  }
+  @media (max-width:640px){
+    header{ flex-wrap:wrap; row-gap:12px; }
+    .auth{ width:100%; justify-content:flex-end; }
+    .watch-wrap{ padding:24px 16px 80px; }
+  }
+
+  .toast-stack{ position:fixed; top:20px; right:20px; z-index:999; display:flex; flex-direction:column; gap:10px; max-width:360px; pointer-events:none; }
+  .toast{ background:#ffffff; border:1px solid var(--line); border-radius:14px; padding:14px 16px; display:flex; align-items:flex-start; gap:12px; box-shadow:0 20px 50px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.06); pointer-events:auto; animation:toastIn .3s cubic-bezier(.2,.9,.25,1) forwards; }
+  .toast.leaving{ animation:toastOut .18s ease forwards; }
+  @keyframes toastIn{ from{ opacity:0; transform:translateY(-8px) scale(.97); } to{ opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes toastOut{ to{ opacity:0; transform:translateX(30px) scale(.96); } }
+  .toast-icon{ width:22px; height:22px; border-radius:50%; background:#fdecea; color:#b3261e; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .toast-icon.ok{ background:#e9f7ee; color:#1e8e3e; }
+  .toast-icon svg{ width:12px; height:12px; }
+  .toast-body{ flex:1; min-width:0; }
+  .toast-title{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:13.5px; margin-bottom:2px; }
+  .toast-msg{ font-size:12.5px; line-height:1.45; color:var(--mid); word-wrap:break-word; }
+  .toast-close{ background:none; border:none; cursor:pointer; color:var(--soft); padding:2px; line-height:0; flex-shrink:0; }
+  .toast-close:hover{ color:var(--ink); }
+  @media (max-width:640px){ .toast-stack{ left:16px; right:16px; top:16px; max-width:none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="brand" href="/">
+    <img src="/justlogo.png" alt="">
+    <span>Platform</span>
+  </a>
+  <div class="auth" id="authArea">
+    <div class="auth-skeleton"></div>
+  </div>
+</header>
+
+<script>
+  (function(){
+    var toastStack = document.createElement('div');
+    toastStack.className = 'toast-stack';
+    document.body.appendChild(toastStack);
+
+    window.toast = function(message, title, kind){
+      title = title || 'Something went wrong';
+      var el = document.createElement('div');
+      el.className = 'toast';
+      var ok = kind === 'ok';
+      el.innerHTML =
+        '<div class="toast-icon' + (ok ? ' ok' : '') + '">' +
+          (ok
+            ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4 10-10"/></svg>'
+            : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 8v5M12 16.2v.01"/></svg>') +
+        '</div>' +
+        '<div class="toast-body"><div class="toast-title"></div><div class="toast-msg"></div></div>' +
+        '<button class="toast-close" aria-label="Dismiss">&times;</button>';
+      el.querySelector('.toast-title').textContent = title;
+      el.querySelector('.toast-msg').textContent = message;
+      toastStack.appendChild(el);
+      var timer;
+      function dismiss(){ clearTimeout(timer); el.classList.add('leaving'); setTimeout(function(){ el.remove(); }, 180); }
+      el.querySelector('.toast-close').addEventListener('click', dismiss);
+      timer = setTimeout(dismiss, 8000);
+      el.addEventListener('mouseenter', function(){ clearTimeout(timer); });
+      el.addEventListener('mouseleave', function(){ timer = setTimeout(dismiss, 3000); });
+    };
+
+    window.addEventListener('error', function(e){
+      var where = e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '';
+      window.toast('A script failed to run: ' + (e.message || 'unknown error') + where, 'Page error');
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      var msg = (e.reason && e.reason.message) ? e.reason.message : String(e.reason);
+      window.toast('A background request failed: ' + msg, 'Page error');
+    });
+
+    setTimeout(function(){
+      var authArea = document.getElementById('authArea');
+      var scriptNeverRan = typeof window.PlatformAuth === 'undefined';
+      if (authArea && authArea.querySelector('.auth-skeleton') && scriptNeverRan) {
+        window.toast(
+          "The account system didn't finish loading in time. This usually means a script got blocked -- try disabling any ad/content blockers for this site, or test in a different browser.",
+          'Still loading'
+        );
+      }
+    }, 6000);
+  })();
+</script>
+
+<main class="watch-wrap">
+  <div class="watch-grid">
+    <div class="watch-main">
+      <div class="vplayer sk" id="watchPlayer"></div>
+      <div class="vinfo">
+        <h1 class="vtitle-main sk" id="watchTitle"></h1>
+        <div class="vaction-bar">
+          <div class="vchannel" id="watchChannel" style="cursor:default;">
+            <div class="vchannel-avatar sk" id="watchChannelAvatarSk"></div>
+            <img class="vchannel-avatar" id="watchChannelAvatarImg" alt="" style="display:none;">
+            <div class="vchannel-meta" id="watchChannelMetaSk">
+              <div class="vchannel-line-sk name sk"></div>
+              <div class="vchannel-line-sk handle sk"></div>
+            </div>
+            <div class="vchannel-meta" id="watchChannelMetaReal" style="display:none;">
+              <span class="vchannel-name" id="watchChannelName"></span>
+              <span class="vchannel-handle" id="watchChannelHandle"></span>
+            </div>
+          </div>
+          <div class="vaction-right">
+            <span id="watchFollowSlot"></span>
+            <div class="vreact-pill disabled" id="watchReactPill">
+              <button class="vreact-btn like" id="watchLikeBtn" data-reaction="like" type="button" disabled>
+                <span id="watchLikeIcon"></span><span id="watchLikeCount">–</span>
+              </button>
+              <button class="vreact-btn dislike" id="watchDislikeBtn" data-reaction="dislike" type="button" disabled>
+                <span id="watchDislikeIcon"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="watch-side" id="watchSide"></aside>
+  </div>
+</main>
+
+<script src="/vendor/platform-auth.js"></script>
+<script>
+  const DEFAULT_AVATAR = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <rect width="100" height="100" fill="#f6f6f4"/>
+      <circle cx="50" cy="38" r="18" fill="#b9b9b4"/>
+      <path d="M50 60c-22 0-36 12-36 28v6h72v-6c0-16-14-28-36-28z" fill="#b9b9b4"/>
+    </svg>`
+  );
+
+  const THUMB_UP_OUTLINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>';
+  const THUMB_UP_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3Zm5.83-19.12L9 7.76V22h8.5a2 2 0 0 0 1.92-1.44l2.33-8A2 2 0 0 0 19.83 10H14l1-4.12a3.13 3.13 0 0 0-3-3.88Z"/></svg>';
+  const THUMB_DOWN_OUTLINE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L13 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>';
+  const THUMB_DOWN_FILLED = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3Zm-5.83 19.12L15 16.24V2H6.5a2 2 0 0 0-1.92 1.44l-2.33 8A2 2 0 0 0 4.17 14H10l-1 4.12a3.13 3.13 0 0 0 3 3.88Z"/></svg>';
+  const NO_VIDEO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.5l-5 3.5 5 3.5v-7Z"/><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M4 4l16 16"/></svg>';
+
+  const authArea = document.getElementById('authArea');
+  PlatformAuth.renderHeader(authArea);
+  const session = PlatformAuth.getSession();
+  if (session) {
+    PlatformAuth.enforceFirstTimeGate();
+    PlatformAuth.startAutoSync();
+  }
+
+  // ---------- WHICH video is this? ----------
+  // /watch/dQw4w9WgXcQ  -- Cloudflare rewrites this to /watch/?v=dQw4w9WgXcQ
+  //                        (see _redirects), so check the query param first.
+  // /watch/dQw4w9WgXcQ  -- also handle a raw, un-rewritten path as a fallback.
+
+  function videoIdFromQuery(){
+    var params = new URLSearchParams(window.location.search);
+    var v = params.get('v');
+    return v ? decodeURIComponent(v) : null;
+  }
+  function videoIdFromPath(){
+    var path = window.location.pathname.replace(/\/+$/, '');
+    var match = path.match(/\/watch\/([^\/]+)/i);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+  const routeVideoId = videoIdFromQuery() || videoIdFromPath();
+
+  function buildSideSkeleton(){
+    var side = document.getElementById('watchSide');
+    var card = function(){
+      return '<div class="side-card-sk">' +
+        '<div class="side-thumb-sk sk"></div>' +
+        '<div class="side-lines-sk">' +
+          '<div class="side-line-sk w90 sk"></div>' +
+          '<div class="side-line-sk w60 sk"></div>' +
+          '<div class="side-line-sk w40 sk"></div>' +
+        '</div>' +
+      '</div>';
+    };
+    side.innerHTML = Array.from({ length: 8 }).map(card).join('');
+  }
+  buildSideSkeleton();
+
+  function makeFollowBtn(username, initiallyFollowing){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'vfollow-btn';
+    var following = !!initiallyFollowing;
+    function paint(){
+      btn.classList.toggle('is-following', following);
+      btn.textContent = following ? 'Following' : 'Follow';
+    }
+    paint();
+    btn.addEventListener('click', function(){
+      if (!PlatformAuth.getSession()) { window.location.href = '/join'; return; }
+      btn.disabled = true;
+      PlatformAuth.toggleFollow(username)
+        .then(function(res){
+          following = !!res.following;
+          paint();
+        })
+        .catch(function(err){ window.toast(err.message || 'Could not update follow status.', 'Error'); })
+        .finally(function(){ btn.disabled = false; });
+    });
+    return btn;
+  }
+
+  // Freezes shimmer on whatever skeleton pieces are still showing once we
+  // know their real state isn't coming (video 404) -- a looping shimmer
+  // implies "still loading", which would be misleading here.
+  function freezeSkeleton(root){
+    root.querySelectorAll('.sk').forEach(function(el){ el.classList.add('frozen'); });
+  }
+
+  function showPlayer404(){
+    var player = document.getElementById('watchPlayer');
+    player.classList.remove('sk');
+    player.innerHTML =
+      '<div class="vplayer-404">' +
+        '<div class="vplayer-404-icon">' + NO_VIDEO_SVG + '</div>' +
+        '<div class="vplayer-404-title">Not on Platform</div>' +
+        '<div class="vplayer-404-sub">This video hasn\'t been synced from a creator here yet.</div>' +
+      '</div>';
+
+    var titleEl = document.getElementById('watchTitle');
+    titleEl.classList.remove('sk');
+    titleEl.style.display = 'none';
+
+    // Channel row + reaction pill stay exactly as they already are (loading
+    // skeleton / disabled) -- freeze them so they read as "unavailable"
+    // rather than "still loading".
+    freezeSkeleton(document.getElementById('watchChannel'));
+    document.getElementById('watchReactPill').classList.add('disabled');
+  }
+
+  function loadWatchView(videoId){
+    var player = document.getElementById('watchPlayer');
+    var titleEl = document.getElementById('watchTitle');
+    var channelAvatarSk = document.getElementById('watchChannelAvatarSk');
+    var channelAvatarImg = document.getElementById('watchChannelAvatarImg');
+    var channelMetaSk = document.getElementById('watchChannelMetaSk');
+    var channelMetaReal = document.getElementById('watchChannelMetaReal');
+    var channelName = document.getElementById('watchChannelName');
+    var channelHandle = document.getElementById('watchChannelHandle');
+    var channelEl = document.getElementById('watchChannel');
+    var followSlot = document.getElementById('watchFollowSlot');
+    var reactPill = document.getElementById('watchReactPill');
+    var likeBtn = document.getElementById('watchLikeBtn');
+    var dislikeBtn = document.getElementById('watchDislikeBtn');
+    var likeIcon = document.getElementById('watchLikeIcon');
+    var dislikeIcon = document.getElementById('watchDislikeIcon');
+    var likeCount = document.getElementById('watchLikeCount');
+
+    PlatformAuth.getVideoByID(videoId).then(function(data){
+      var v = data.video;
+      var user = data.user;
+
+      player.classList.remove('sk');
+      player.innerHTML =
+        '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.video_id) + '?autoplay=1&rel=0&modestbranding=1" ' +
+        'title="' + (v.title || '').replace(/"/g, '&quot;') + '" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+
+      document.title = (v.title || 'Watch') + ' — Platform';
+      titleEl.classList.remove('sk');
+      titleEl.style.width = 'auto';
+      titleEl.textContent = v.title || '';
+
+      channelAvatarSk.style.display = 'none';
+      channelAvatarImg.style.display = 'block';
+      channelAvatarImg.src = user.pfp || DEFAULT_AVATAR;
+      channelMetaSk.style.display = 'none';
+      channelMetaReal.style.display = 'flex';
+      channelName.textContent = (data.channel && data.channel.title) ? data.channel.title : ('@' + user.username);
+      channelHandle.textContent = '@' + user.username;
+      channelEl.setAttribute('href', '/profile/@' + encodeURIComponent(user.username));
+      channelEl.style.cursor = 'pointer';
+
+      if (!data.isSelf && PlatformAuth.getSession()) {
+        followSlot.appendChild(makeFollowBtn(user.username, data.isFollowing));
+      }
+
+      reactPill.classList.remove('disabled');
+      likeBtn.disabled = false;
+      dislikeBtn.disabled = false;
+
+      function setActive(which){
+        likeBtn.classList.toggle('active', which === 'like');
+        dislikeBtn.classList.toggle('active', which === 'dislike');
+        likeIcon.innerHTML = which === 'like' ? THUMB_UP_FILLED : THUMB_UP_OUTLINE;
+        dislikeIcon.innerHTML = which === 'dislike' ? THUMB_DOWN_FILLED : THUMB_DOWN_OUTLINE;
+        likeCount.textContent = v.like_count || 0;
+      }
+      setActive(data.myReaction);
+
+      [likeBtn, dislikeBtn].forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if (!PlatformAuth.getSession()) { window.location.href = '/join'; return; }
+          var reaction = btn.getAttribute('data-reaction');
+          PlatformAuth.toggleVideoReaction(v.id, reaction)
+            .then(function(res){
+              v.like_count = res.like_count;
+              v.dislike_count = res.dislike_count;
+              setActive(res.reaction || null);
+            })
+            .catch(function(err){ window.toast(err.message || 'Could not react to this video.', 'Error'); });
+        });
+      });
+    }).catch(function(){
+      // Video id doesn't resolve to anything in creators_videos -- keep the
+      // rest of the page intact, just replace the player with a minimal
+      // "not on Platform" state.
+      showPlayer404();
+    });
+  }
+
+  document.getElementById('watchChannel').addEventListener('click', function(){
+    var href = this.getAttribute('href');
+    if (href) window.location.href = href;
+  });
+
+  if (!routeVideoId) {
+    showPlayer404();
+  } else {
+    loadWatchView(routeVideoId);
+  }
+</script>
+
+</body>
+</html>
