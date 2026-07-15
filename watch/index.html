@@ -82,13 +82,6 @@
   .vplayer-center-btn.pulse{ opacity:1; animation:centerPulse .55s ease forwards; }
   @keyframes centerPulse{ 0%{ opacity:1; transform:scale(1); } 100%{ opacity:0; transform:scale(1.35); } }
 
-  /* simple white ball-on-a-line loader (replaces the old ring spinner) */
-  .vplayer-loading{ position:absolute; top:50%; left:50%; width:70px; height:14px; margin:-7px 0 0 -35px; z-index:3; opacity:0; pointer-events:none; transition:opacity .15s ease; }
-  .vplayer-loading.show{ opacity:1; }
-  .vplayer-loading-line{ position:absolute; left:0; right:0; top:50%; height:2px; margin-top:-1px; border-radius:2px; background:rgba(255,255,255,.3); }
-  .vplayer-loading-ball{ position:absolute; top:50%; width:10px; height:10px; margin-top:-5px; border-radius:50%; background:#fff; animation:vballmove 1s ease-in-out infinite; }
-  @keyframes vballmove{ 0%,100%{ left:0; } 50%{ left:calc(100% - 10px); } }
-
   /* start cover -- sits over the iframe at its exact size/position, shows a
      single big play button, and takes over the very first click so users
      aren't stuck double-tapping to get playback going */
@@ -108,7 +101,6 @@
   .vprogress{ position:relative; height:14px; display:flex; align-items:center; cursor:pointer; }
   .vprogress-track{ position:absolute; left:0; right:0; height:3px; border-radius:2px; background:rgba(255,255,255,.28); transition:height .1s ease; }
   .vprogress:hover .vprogress-track, .vprogress.dragging .vprogress-track{ height:5px; }
-  .vprogress-buffered{ position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:2px; background:rgba(255,255,255,.4); }
   .vprogress-played{ position:absolute; left:0; top:0; bottom:0; width:0%; border-radius:2px; background:#fff; }
   .vprogress-handle{ position:absolute; top:50%; width:12px; height:12px; margin-top:-6px; margin-left:-6px; border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.4); left:0%; transform:scale(0); transition:transform .12s ease; }
   .vprogress:hover .vprogress-handle, .vprogress.dragging .vprogress-handle{ transform:scale(1); }
@@ -431,13 +423,11 @@
           '<div class="vplayer-seekflash left" id="vpFlashLeft">' + ICON.seekBack + '<span id="vpFlashLeftLabel">10</span></div>' +
           '<div class="vplayer-seekflash right" id="vpFlashRight">' + ICON.seekFwd + '<span id="vpFlashRightLabel">10</span></div>' +
           '<div class="vplayer-center-btn" id="vpCenterBtn"></div>' +
-          '<div class="vplayer-loading" id="vpLoading"><div class="vplayer-loading-line"></div><div class="vplayer-loading-ball"></div></div>' +
           '<div class="vplayer-startcover" id="vpStartCover"><div class="vplayer-startcover-btn">' + ICON.play + '</div></div>' +
           '<div class="vplayer-controls" id="vpControls">' +
             '<div class="vprogress-row">' +
               '<div class="vprogress" id="vpProgress">' +
                 '<div class="vprogress-track"></div>' +
-                '<div class="vprogress-buffered" id="vpBuffered"></div>' +
                 '<div class="vprogress-played" id="vpPlayed"></div>' +
                 '<div class="vprogress-handle" id="vpHandle"></div>' +
               '</div>' +
@@ -468,8 +458,8 @@
         inner: $('vpInner'), mount: $('vpMount'), hit: $('vpHit'),
         flashLeft: $('vpFlashLeft'), flashRight: $('vpFlashRight'),
         flashLeftLabel: $('vpFlashLeftLabel'), flashRightLabel: $('vpFlashRightLabel'),
-        centerBtn: $('vpCenterBtn'), loading: $('vpLoading'), startCover: $('vpStartCover'), controls: $('vpControls'),
-        progress: $('vpProgress'), buffered: $('vpBuffered'), played: $('vpPlayed'), handle: $('vpHandle'),
+        centerBtn: $('vpCenterBtn'), startCover: $('vpStartCover'), controls: $('vpControls'),
+        progress: $('vpProgress'), played: $('vpPlayed'), handle: $('vpHandle'),
         playBtn: $('vpPlayBtn'), volWrap: $('vpVolWrap'), muteBtn: $('vpMuteBtn'), volSlider: $('vpVolSlider'),
         time: $('vpTime'), speedBtn: $('vpSpeedBtn'), speedMenu: $('vpSpeedMenu'), fsBtn: $('vpFsBtn'), fsClose: $('vpFsClose')
       };
@@ -535,11 +525,9 @@
         if (!yt || draggingProgress) return;
         const cur = yt.getCurrentTime ? yt.getCurrentTime() : 0;
         duration = (yt.getDuration ? yt.getDuration() : 0) || duration;
-        const buf = yt.getVideoLoadedFraction ? yt.getVideoLoadedFraction() : 0;
         const pct = duration ? Math.min(100, (cur / duration) * 100) : 0;
         els.played.style.width = pct + '%';
         els.handle.style.left = pct + '%';
-        els.buffered.style.width = (buf * 100) + '%';
         els.time.textContent = fmtTime(cur) + ' / ' + fmtTime(duration);
       }
       function startProgressLoop(){
@@ -761,7 +749,6 @@
       // ---- build the actual YT player ----
       const mountId = 'ytmount_' + Math.random().toString(36).slice(2);
       els.mount.id = mountId;
-      els.loading.classList.add('show');
 
       loadYouTubeAPI().then(function(){
         yt = new YT.Player(mountId, {
@@ -769,18 +756,15 @@
           playerVars: { autoplay: 1, rel: 0, modestbranding: 1, controls: 0, disablekb: 1, playsinline: 1, iv_load_policy: 3, fs: 0 },
           events: {
             onReady: function(){
-              els.loading.classList.remove('show');
               updateVolIcon();
               startProgressLoop();
               setPaused(false);
               if (pendingPlay) { pendingPlay = false; yt.playVideo(); }
             },
             onStateChange: function(ev){
-              if (ev.data === YT.PlayerState.PLAYING) { setPaused(false); els.loading.classList.remove('show'); hideStartCover(); }
+              if (ev.data === YT.PlayerState.PLAYING) { setPaused(false); hideStartCover(); }
               else if (ev.data === YT.PlayerState.PAUSED) { setPaused(true); }
-              else if (ev.data === YT.PlayerState.BUFFERING) { els.loading.classList.add('show'); }
               else if (ev.data === YT.PlayerState.ENDED) { setPaused(true); }
-              else if (ev.data === YT.PlayerState.CUED) { els.loading.classList.remove('show'); }
             },
             onError: function(){
               window.toast('This video could not be played (it may be restricted or removed on YouTube).', 'Playback error');
